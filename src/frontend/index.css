@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.625rem;
+    --background: 0.99 0.01 60;
+    --foreground: 0.15 0.03 30;
+    --card: 1 0 0;
+    --card-foreground: 0.15 0.03 30;
+    --popover: 1 0 0;
+    --popover-foreground: 0.15 0.03 30;
+    --primary: 0.65 0.22 35;
+    --primary-foreground: 0.99 0 0;
+    --secondary: 0.96 0.03 60;
+    --secondary-foreground: 0.15 0.03 30;
+    --muted: 0.96 0.02 60;
+    --muted-foreground: 0.5 0.03 30;
+    --accent: 0.93 0.08 70;
+    --accent-foreground: 0.15 0.03 30;
+    --destructive: 0.57 0.24 27;
+    --destructive-foreground: 0.99 0 0;
+    --border: 0.9 0.03 60;
+    --input: 0.9 0.03 60;
+    --ring: 0.65 0.22 35;
+    --chart-1: 0.65 0.22 35;
+    --chart-2: 0.6 0.18 60;
+    --chart-3: 0.55 0.15 200;
+    --chart-4: 0.75 0.18 90;
+    --chart-5: 0.7 0.2 50;
+    --sidebar: 0.15 0.03 30;
+    --sidebar-foreground: 0.99 0 0;
+    --sidebar-primary: 0.65 0.22 35;
+    --sidebar-primary-foreground: 0.99 0 0;
+    --sidebar-accent: 0.25 0.03 30;
+    --sidebar-accent-foreground: 0.99 0 0;
+    --sidebar-border: 0.25 0.03 30;
+    --sidebar-ring: 0.65 0.22 35;
+  }
+
+  .dark {
+    --background: 0.12 0.02 30;
+    --foreground: 0.97 0.01 60;
+    --card: 0.17 0.02 30;
+    --card-foreground: 0.97 0.01 60;
+    --popover: 0.2 0.02 30;
+    --popover-foreground: 0.97 0.01 60;
+    --primary: 0.7 0.22 35;
+    --primary-foreground: 0.12 0.02 30;
+    --secondary: 0.22 0.02 30;
+    --secondary-foreground: 0.97 0.01 60;
+    --muted: 0.22 0.02 30;
+    --muted-foreground: 0.6 0.02 60;
+    --accent: 0.25 0.04 35;
+    --accent-foreground: 0.97 0.01 60;
+    --destructive: 0.57 0.24 27;
+    --destructive-foreground: 0.99 0 0;
+    --border: 0.25 0.02 30;
+    --input: 0.25 0.02 30;
+    --ring: 0.7 0.22 35;
+    --sidebar: 0.1 0.02 30;
+    --sidebar-foreground: 0.97 0.01 60;
+    --sidebar-primary: 0.7 0.22 35;
+    --sidebar-primary-foreground: 0.12 0.02 30;
+    --sidebar-accent: 0.2 0.02 30;
+    --sidebar-accent-foreground: 0.97 0.01 60;
+    --sidebar-border: 0.2 0.02 30;
+    --sidebar-ring: 0.7 0.22 35;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
