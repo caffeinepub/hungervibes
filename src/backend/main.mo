@@ -105,6 +105,12 @@ actor {
     uses : Nat;
   };
 
+  type AgentInfo = {
+    principal : Principal;
+    name : Text;
+    phone : Text;
+  };
+
   // ========== Internal State ==========
   var nextRestaurantId = 1;
   var nextMenuItemId = 1;
@@ -209,6 +215,103 @@ actor {
     userProfiles.values().toArray().filter(
       func(u : UserProfile) : Bool { u.role == role }
     );
+  };
+
+  // Returns verified, active delivery agents with their principals for assignment
+  public query ({ caller }) func getVerifiedDeliveryAgents() : async [AgentInfo] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only registered users can view agents");
+    };
+    userProfiles.entries().toArray()
+      .filter(func(entry : (Principal, UserProfile)) : Bool {
+        entry.1.role == #delivery_agent and entry.1.isVerified and not entry.1.isSuspended
+      })
+      .map(func(entry : (Principal, UserProfile)) : AgentInfo {
+        { principal = entry.0; name = entry.1.name; phone = entry.1.phone }
+      });
+  };
+
+  // Restaurant assigns a specific delivery agent to an order
+  public shared ({ caller }) func restaurantAssignAgent(orderId : Nat, agentId : Principal) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only registered users can assign agents");
+    };
+    switch (orders.get(orderId)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?order) {
+        // Verify caller is the restaurant owner
+        switch (restaurants.get(order.restaurantId)) {
+          case (null) { Runtime.trap("Restaurant not found") };
+          case (?restaurant) {
+            if (restaurant.ownerId != caller) {
+              Runtime.trap("Unauthorized: Only restaurant owner can assign delivery agents");
+            };
+            if (order.status != #ready_for_pickup) {
+              Runtime.trap("Order must be ready for pickup to assign an agent");
+            };
+            // Verify agent exists, is verified, and not suspended
+            switch (userProfiles.get(agentId)) {
+              case (null) { Runtime.trap("Agent not found") };
+              case (?agentProfile) {
+                if (agentProfile.role != #delivery_agent) {
+                  Runtime.trap("User is not a delivery agent");
+                };
+                if (not agentProfile.isVerified) {
+                  Runtime.trap("Agent is not verified");
+                };
+                if (agentProfile.isSuspended) {
+                  Runtime.trap("Agent is suspended");
+                };
+              };
+            };
+            orders.add(orderId, { order with deliveryAgentId = ?agentId });
+          };
+        };
+      };
+    };
+  };
+
+  // Delivery agent accepts or declines an assignment
+  public shared ({ caller }) func agentRespondToAssignment(orderId : Nat, accept : Bool) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only registered users can respond to assignments");
+    };
+    // Verify caller is a verified delivery agent
+    switch (userProfiles.get(caller)) {
+      case (null) { Runtime.trap("User profile not found") };
+      case (?profile) {
+        if (profile.role != #delivery_agent) {
+          Runtime.trap("Only delivery agents can respond to assignments");
+        };
+        if (not profile.isVerified) {
+          Runtime.trap("Delivery agent must be verified");
+        };
+      };
+    };
+    switch (orders.get(orderId)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?order) {
+        // Verify this order is assigned to the caller
+        switch (order.deliveryAgentId) {
+          case (null) { Runtime.trap("No agent assigned to this order") };
+          case (?assignedAgent) {
+            if (assignedAgent != caller) {
+              Runtime.trap("This order is not assigned to you");
+            };
+          };
+        };
+        if (order.status != #ready_for_pickup) {
+          Runtime.trap("Order is not in ready_for_pickup status");
+        };
+        if (accept) {
+          // Agent accepts: move to picked_up
+          orders.add(orderId, { order with status = #picked_up });
+        } else {
+          // Agent declines: clear assignment, order goes back to available pool
+          orders.add(orderId, { order with deliveryAgentId = null });
+        };
+      };
+    };
   };
 
   // ========== Restaurant Functions ==========
@@ -514,13 +617,13 @@ actor {
                   Runtime.trap("Unauthorized: Only restaurant owner can update to preparing/ready_for_pickup");
                 };
               };
-              case (#picked_up or #delivered) {
+              case (#delivered) {
                 // Verify caller is the assigned delivery agent
                 switch (order.deliveryAgentId) {
                   case (null) { Runtime.trap("No delivery agent assigned") };
                   case (?agentId) {
                     if (agentId != caller) {
-                      Runtime.trap("Unauthorized: Only assigned delivery agent can update to picked_up/delivered");
+                      Runtime.trap("Unauthorized: Only assigned delivery agent can mark as delivered");
                     };
                   };
                 };
@@ -563,7 +666,10 @@ actor {
         if (order.status != #ready_for_pickup) {
           Runtime.trap("Order must be ready for pickup");
         };
-        orders.add(orderId, { order with deliveryAgentId = ?caller });
+        if (order.deliveryAgentId != null) {
+          Runtime.trap("Order already has a delivery agent assigned");
+        };
+        orders.add(orderId, { order with deliveryAgentId = ?caller; status = #picked_up });
       };
     };
   };

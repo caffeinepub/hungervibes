@@ -149,6 +149,12 @@ export interface UserProfile {
     isSuspended: boolean;
     phone: string;
 }
+
+export interface AgentInfo {
+    principal: import("@icp-sdk/core/principal").Principal;
+    name: string;
+    phone: string;
+}
 export enum OrderStatus {
     picked_up = "picked_up",
     preparing = "preparing",
@@ -225,6 +231,9 @@ export interface backendInterface {
     updateRestaurant(restaurantId: bigint, name: string | null, description: string | null, address: string | null, phone: string | null, cuisineType: string | null): Promise<void>;
     validateCoupon(code: string): Promise<boolean>;
     verifyDeliveryAgent(agentId: Principal): Promise<void>;
+    agentRespondToAssignment(orderId: bigint, accept: boolean): Promise<void>;
+    getVerifiedDeliveryAgents(): Promise<Array<AgentInfo>>;
+    restaurantAssignAgent(orderId: bigint, agentId: Principal): Promise<void>;
 }
 import type { ExternalBlob as _ExternalBlob, MenuItem as _MenuItem, Order as _Order, OrderItem as _OrderItem, OrderStatus as _OrderStatus, PaymentMethod as _PaymentMethod, Restaurant as _Restaurant, Role as _Role, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -891,6 +900,50 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+
+    async agentRespondToAssignment(arg0: bigint, arg1: boolean): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await (this.actor as any).agentRespondToAssignment(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await (this.actor as any).agentRespondToAssignment(arg0, arg1);
+            return result;
+        }
+    }
+    async getVerifiedDeliveryAgents(): Promise<Array<AgentInfo>> {
+        if (this.processError) {
+            try {
+                const result = await (this.actor as any).getVerifiedDeliveryAgents();
+                return (result as any[]).map((r: any) => ({ principal: r.principal, name: r.name, phone: r.phone }));
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await (this.actor as any).getVerifiedDeliveryAgents();
+            return (result as any[]).map((r: any) => ({ principal: r.principal, name: r.name, phone: r.phone }));
+        }
+    }
+    async restaurantAssignAgent(arg0: bigint, arg1: import("@icp-sdk/core/principal").Principal): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await (this.actor as any).restaurantAssignAgent(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await (this.actor as any).restaurantAssignAgent(arg0, arg1);
+            return result;
+        }
+    }
+
 }
 async function from_candid_ExternalBlob_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ExternalBlob): Promise<ExternalBlob> {
     return await _downloadFile(value);

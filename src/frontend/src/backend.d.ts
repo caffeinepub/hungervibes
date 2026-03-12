@@ -63,6 +63,11 @@ export interface UserProfile {
     isSuspended: boolean;
     phone: string;
 }
+export interface AgentInfo {
+    principal: Principal;
+    name: string;
+    phone: string;
+}
 export enum OrderStatus {
     picked_up = "picked_up",
     preparing = "preparing",
@@ -92,6 +97,7 @@ export interface backendInterface {
     acceptOrder(orderId: bigint, isAccepted: boolean): Promise<void>;
     activateUser(userId: Principal): Promise<void>;
     addMenuItem(restaurantId: bigint, name: string, description: string, price: bigint, category: string, imageUrl: ExternalBlob | null): Promise<bigint>;
+    agentRespondToAssignment(orderId: bigint, accept: boolean): Promise<void>;
     approveRestaurant(restaurantId: bigint): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     assignDeliveryAgent(orderId: bigint): Promise<void>;
@@ -121,10 +127,12 @@ export interface backendInterface {
     getTopRestaurants(limit: bigint): Promise<Array<[bigint, bigint]>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUsersByRole(role: Role): Promise<Array<UserProfile>>;
+    getVerifiedDeliveryAgents(): Promise<Array<AgentInfo>>;
     isCallerAdmin(): Promise<boolean>;
     placeOrder(restaurantId: bigint, items: Array<OrderItem>, deliveryAddress: string, paymentMethod: PaymentMethod, couponCode: string | null): Promise<bigint>;
     registerUser(name: string, phone: string, role: Role): Promise<void>;
     rejectRestaurant(restaurantId: bigint): Promise<void>;
+    restaurantAssignAgent(orderId: bigint, agentId: Principal): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     suspendRestaurant(restaurantId: bigint): Promise<void>;
     suspendUser(userId: Principal): Promise<void>;

@@ -19,12 +19,7 @@ import type {
   UserProfile,
 } from "../backend";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Skeleton } from "../components/ui/skeleton";
 import { useActor } from "../hooks/useActor";
@@ -39,6 +34,20 @@ interface CartItem {
 
 function formatPrice(p: bigint) {
   return `₹${(Number(p) / 100).toFixed(0)}`;
+}
+
+function statusLabel(s: string): string {
+  const map: Record<string, string> = {
+    pending: "⏳ Waiting for Restaurant",
+    accepted: "✅ Restaurant Accepted",
+    rejected: "❌ Order Rejected",
+    preparing: "🍳 Being Prepared",
+    ready_for_pickup: "🔍 Finding Delivery Agent",
+    picked_up: "🛵 On the Way!",
+    delivered: "✅ Delivered!",
+    cancelled: "🚫 Cancelled",
+  };
+  return map[s] || s.replace(/_/g, " ");
 }
 
 function statusColor(s: string) {
@@ -566,6 +575,14 @@ export default function CustomerPage({
       {/* Orders */}
       {tab === "orders" && (
         <div className="px-4 py-4 space-y-3">
+          <div className="flex justify-between items-center mb-1">
+            <div className="font-semibold text-sm text-muted-foreground">
+              Your Orders
+            </div>
+            <Button variant="ghost" size="sm" onClick={loadOrders}>
+              Refresh
+            </Button>
+          </div>
           {loadingOrders ? (
             <div
               data-ocid="customer.orders.loading_state"
@@ -592,9 +609,11 @@ export default function CustomerPage({
                   <div className="flex justify-between items-start mb-2">
                     <div className="font-semibold">Order #{String(o.id)}</div>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor(o.status)}`}
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor(
+                        o.status,
+                      )}`}
                     >
-                      {o.status.replace(/_/g, " ")}
+                      {statusLabel(o.status)}
                     </span>
                   </div>
                   <div className="text-sm text-muted-foreground">
@@ -603,6 +622,44 @@ export default function CustomerPage({
                   <div className="text-sm text-muted-foreground">
                     {o.deliveryAddress}
                   </div>
+                  {/* Progress bar */}
+                  {!["cancelled", "rejected", "delivered"].includes(
+                    o.status,
+                  ) && (
+                    <div className="mt-3">
+                      <div className="flex gap-1 items-center">
+                        {[
+                          "pending",
+                          "accepted",
+                          "preparing",
+                          "ready_for_pickup",
+                          "picked_up",
+                          "delivered",
+                        ].map((step) => {
+                          const steps = [
+                            "pending",
+                            "accepted",
+                            "preparing",
+                            "ready_for_pickup",
+                            "picked_up",
+                            "delivered",
+                          ];
+                          const currentIdx = steps.indexOf(o.status);
+                          const stepIdx = steps.indexOf(step);
+                          return (
+                            <div
+                              key={step}
+                              className={`flex-1 h-1.5 rounded-full ${
+                                stepIdx <= currentIdx
+                                  ? "bg-primary"
+                                  : "bg-muted"
+                              }`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {o.status === "pending" && (
                     <Button
                       variant="destructive"

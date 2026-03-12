@@ -30,27 +30,59 @@ export default function DeliveryPage({
   const { identity } = useInternetIdentity();
   const [tab, setTab] = useState<Tab>("available");
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
-  const [myOrders, setMyOrders] = useState<Order[]>([]);
+  const [assignedOrders, setAssignedOrders] = useState<Order[]>([]);
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [deliveryHistory, setDeliveryHistory] = useState<Order[]>([]);
   const [earnings, setEarnings] = useState<bigint>(0n);
   const [loading, setLoading] = useState(true);
-  const [accepting, setAccepting] = useState<bigint | null>(null);
+  const [responding, setResponding] = useState<bigint | null>(null);
 
   async function loadData() {
     if (!actor || !identity) return;
     setLoading(true);
     try {
       const principal = identity.getPrincipal();
-      const [all, mine, earn] = await Promise.all([
+      const [all, earn] = await Promise.all([
         actor.getAllOrders(),
-        actor.getOrdersByDeliveryAgent(principal),
         actor.getDeliveryAgentEarnings(principal),
       ]);
+      // Available pool: ready_for_pickup with NO agent assigned
       setAvailableOrders(
-        all.filter(
-          (o) => o.status === "ready_for_pickup" && !o.deliveryAgentId,
-        ),
+        all
+          .filter((o) => o.status === "ready_for_pickup" && !o.deliveryAgentId)
+          .sort((a, b) => Number(b.id) - Number(a.id)),
       );
-      setMyOrders(mine.sort((a, b) => Number(b.id) - Number(a.id)));
+      // Assigned to me (pending my response): ready_for_pickup with MY principal
+      const myPrincipalStr = principal.toString();
+      setAssignedOrders(
+        all
+          .filter(
+            (o) =>
+              o.status === "ready_for_pickup" &&
+              o.deliveryAgentId?.toString() === myPrincipalStr,
+          )
+          .sort((a, b) => Number(b.id) - Number(a.id)),
+      );
+      // Active: picked_up by me
+      setActiveOrders(
+        all
+          .filter(
+            (o) =>
+              o.status === "picked_up" &&
+              o.deliveryAgentId?.toString() === myPrincipalStr,
+          )
+          .sort((a, b) => Number(b.id) - Number(a.id)),
+      );
+      // History: delivered or cancelled
+      setDeliveryHistory(
+        all
+          .filter(
+            (o) =>
+              ["delivered", "cancelled"].includes(o.status) &&
+              o.deliveryAgentId?.toString() === myPrincipalStr,
+          )
+          .sort((a, b) => Number(b.id) - Number(a.id)),
+      );
       setEarnings(earn);
     } finally {
       setLoading(false);
@@ -62,32 +94,22 @@ export default function DeliveryPage({
     loadData();
   }, [actor, identity]);
 
-  async function acceptOrder(orderId: bigint) {
+  async function respondToAssignment(orderId: bigint, accept: boolean) {
     if (!actor) return;
-    setAccepting(orderId);
+    setResponding(orderId);
     try {
-      await actor.assignDeliveryAgent(orderId);
+      await actor.agentRespondToAssignment(orderId, accept);
       await loadData();
-      setTab("active");
+      if (accept) setTab("active");
     } finally {
-      setAccepting(null);
+      setResponding(null);
     }
-  }
-
-  async function markPickedUp(orderId: bigint) {
-    await actor?.updateOrderStatus(orderId, OrderStatus.picked_up);
-    loadData();
   }
 
   async function markDelivered(orderId: bigint) {
     await actor?.updateOrderStatus(orderId, OrderStatus.delivered);
     loadData();
   }
-
-  const activeOrders = myOrders.filter((o) => ["picked_up"].includes(o.status));
-  const deliveryHistory = myOrders.filter((o) =>
-    ["delivered", "cancelled"].includes(o.status),
-  );
 
   // Show a proper pending screen with sign-out and home buttons so the user is never stuck
   if (!profile.isVerified) {
@@ -141,6 +163,9 @@ export default function DeliveryPage({
     );
   }
 
+  const assignedCount = assignedOrders.length;
+  const activeCount = activeOrders.length;
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="bg-primary text-primary-foreground px-4 py-3 flex items-center gap-2">
@@ -167,84 +192,140 @@ export default function DeliveryPage({
       </div>
 
       {tab === "available" && (
-        <div className="px-4 py-4 space-y-3">
-          <div className="font-semibold text-muted-foreground text-sm">
-            Available Deliveries
-          </div>
-          {loading ? (
-            <div
-              data-ocid="delivery.available.loading_state"
-              className="space-y-3"
-            >
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-24 rounded-xl" />
-              ))}
-            </div>
-          ) : availableOrders.length === 0 ? (
-            <div
-              data-ocid="delivery.available.empty_state"
-              className="text-center py-16 text-muted-foreground"
-            >
-              <Package size={40} className="mx-auto mb-3 opacity-40" />
-              <p>No orders available right now</p>
-              <Button variant="outline" className="mt-3" onClick={loadData}>
-                Refresh
-              </Button>
-            </div>
-          ) : (
-            availableOrders.map((o, idx) => (
-              <Card
-                key={String(o.id)}
-                data-ocid={`delivery.available.item.${idx + 1}`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex justify-between mb-1">
-                    <div className="font-semibold">Order #{String(o.id)}</div>
-                    <div className="text-primary font-bold">
-                      {formatPrice(o.deliveryFee)}
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground mb-1">
-                    📍 {o.deliveryAddress}
-                  </div>
-                  <div className="text-sm text-muted-foreground mb-3">
-                    {o.items.length} items • {formatPrice(o.totalAmount)}
-                  </div>
-                  <Button
-                    data-ocid={`delivery.accept.button.${idx + 1}`}
-                    className="w-full"
-                    disabled={accepting === o.id}
-                    onClick={() => acceptOrder(o.id)}
+        <div className="px-4 py-4 space-y-4">
+          {/* Assigned to me section */}
+          {assignedCount > 0 && (
+            <div>
+              <div className="font-semibold text-sm mb-2 text-indigo-700">
+                📋 Assigned to You ({assignedCount})
+              </div>
+              <div className="space-y-3">
+                {assignedOrders.map((o, idx) => (
+                  <Card
+                    key={String(o.id)}
+                    data-ocid={`delivery.assigned.item.${idx + 1}`}
+                    className="border-indigo-300 bg-indigo-50"
                   >
-                    {accepting === o.id ? (
-                      <>
-                        <Loader2 className="animate-spin mr-2" size={16} />
-                        Accepting...
-                      </>
-                    ) : (
-                      <>
-                        <Navigation size={16} className="mr-2" />
-                        Accept Delivery
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))
+                    <CardContent className="p-4">
+                      <div className="flex justify-between mb-1">
+                        <div className="font-semibold">
+                          Order #{String(o.id)}
+                        </div>
+                        <div className="text-primary font-bold">
+                          {formatPrice(o.deliveryFee)} earning
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground mb-1">
+                        📍 {o.deliveryAddress}
+                      </div>
+                      <div className="text-sm text-muted-foreground mb-3">
+                        {o.items.length} items • Order total{" "}
+                        {formatPrice(o.totalAmount)}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          data-ocid={`delivery.accept_assignment.button.${idx + 1}`}
+                          className="flex-1"
+                          disabled={responding === o.id}
+                          onClick={() => respondToAssignment(o.id, true)}
+                        >
+                          {responding === o.id ? (
+                            <Loader2 className="animate-spin mr-1" size={14} />
+                          ) : (
+                            <Navigation size={14} className="mr-1" />
+                          )}
+                          Accept
+                        </Button>
+                        <Button
+                          data-ocid={`delivery.decline_assignment.button.${idx + 1}`}
+                          variant="outline"
+                          className="flex-1"
+                          disabled={responding === o.id}
+                          onClick={() => respondToAssignment(o.id, false)}
+                        >
+                          Decline
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           )}
+
+          {/* Available pool */}
+          <div>
+            <div className="font-semibold text-muted-foreground text-sm mb-2">
+              🔍 Available Deliveries
+            </div>
+            {loading ? (
+              <div
+                data-ocid="delivery.available.loading_state"
+                className="space-y-3"
+              >
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-24 rounded-xl" />
+                ))}
+              </div>
+            ) : availableOrders.length === 0 ? (
+              <div
+                data-ocid="delivery.available.empty_state"
+                className="text-center py-10 text-muted-foreground"
+              >
+                <Package size={36} className="mx-auto mb-2 opacity-40" />
+                <p className="text-sm">No unassigned orders right now</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={loadData}
+                >
+                  Refresh
+                </Button>
+              </div>
+            ) : (
+              availableOrders.map((o, idx) => (
+                <Card
+                  key={String(o.id)}
+                  data-ocid={`delivery.available.item.${idx + 1}`}
+                  className="mb-3"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between mb-1">
+                      <div className="font-semibold">Order #{String(o.id)}</div>
+                      <div className="text-primary font-bold">
+                        {formatPrice(o.deliveryFee)}
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground mb-1">
+                      📍 {o.deliveryAddress}
+                    </div>
+                    <div className="text-sm text-muted-foreground mb-3">
+                      {o.items.length} items • {formatPrice(o.totalAmount)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Self-pickup available — restaurant hasn't assigned an
+                      agent yet.
+                    </p>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </div>
       )}
 
       {tab === "active" && (
         <div className="px-4 py-4 space-y-3">
           <div className="font-semibold text-muted-foreground text-sm">
-            Active Delivery
+            Active Deliveries
           </div>
           {activeOrders.length === 0 ? (
             <div
               data-ocid="delivery.active.empty_state"
               className="text-center py-16 text-muted-foreground"
             >
+              <Package size={40} className="mx-auto mb-3 opacity-40" />
               <p>No active deliveries</p>
             </div>
           ) : (
@@ -262,47 +343,19 @@ export default function DeliveryPage({
                     Deliver to: {o.deliveryAddress}
                   </div>
                   <div className="text-sm text-muted-foreground mb-3">
-                    {o.items.length} items
+                    {o.items.length} items • {formatPrice(o.totalAmount)}
                   </div>
-                  {o.status === "picked_up" && (
-                    <Button
-                      data-ocid={`delivery.delivered.button.${idx + 1}`}
-                      className="w-full"
-                      onClick={() => markDelivered(o.id)}
-                    >
-                      Mark Delivered ✓
-                    </Button>
-                  )}
+                  <Button
+                    data-ocid={`delivery.delivered.button.${idx + 1}`}
+                    className="w-full"
+                    onClick={() => markDelivered(o.id)}
+                  >
+                    Mark Delivered ✓
+                  </Button>
                 </CardContent>
               </Card>
             ))
           )}
-          {/* Show my orders with ready_for_pickup status too */}
-          {myOrders
-            .filter((o) => o.status === "ready_for_pickup")
-            .map((o, idx) => (
-              <Card
-                key={String(o.id)}
-                data-ocid={`delivery.pickup.item.${idx + 1}`}
-                className="border-orange-300"
-              >
-                <CardContent className="p-4">
-                  <div className="font-semibold mb-1">
-                    Order #{String(o.id)} — Ready for Pickup
-                  </div>
-                  <div className="text-sm text-muted-foreground mb-3">
-                    {o.items.length} items
-                  </div>
-                  <Button
-                    data-ocid={`delivery.pickedup.button.${idx + 1}`}
-                    className="w-full"
-                    onClick={() => markPickedUp(o.id)}
-                  >
-                    Mark Picked Up
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
         </div>
       )}
 
@@ -355,10 +408,20 @@ export default function DeliveryPage({
             key={t}
             data-ocid={`delivery.nav.${t}.tab`}
             onClick={() => setTab(t)}
-            className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
+            className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors relative ${
               tab === t ? "text-primary" : "text-muted-foreground"
             }`}
           >
+            {t === "available" && assignedCount > 0 && (
+              <span className="absolute top-1 right-4 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                {assignedCount}
+              </span>
+            )}
+            {t === "active" && activeCount > 0 && (
+              <span className="absolute top-1 right-4 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                {activeCount}
+              </span>
+            )}
             <span>
               {t === "available" ? "🔍" : t === "active" ? "🛵" : "💰"}
             </span>

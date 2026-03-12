@@ -1,7 +1,13 @@
 import { Home, Loader2, LogOut, Plus, Store, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { OrderStatus } from "../backend";
-import type { MenuItem, Order, Restaurant, UserProfile } from "../backend";
+import type {
+  AgentInfo,
+  MenuItem,
+  Order,
+  Restaurant,
+  UserProfile,
+} from "../backend";
 import { ExternalBlob } from "../backend";
 import { Button } from "../components/ui/button";
 import {
@@ -27,6 +33,7 @@ function statusColor(s: string) {
     accepted: "bg-blue-100 text-blue-800",
     preparing: "bg-orange-100 text-orange-800",
     ready_for_pickup: "bg-purple-100 text-purple-800",
+    picked_up: "bg-indigo-100 text-indigo-800",
     delivered: "bg-green-100 text-green-800",
     cancelled: "bg-red-100 text-red-800",
     rejected: "bg-red-100 text-red-800",
@@ -48,6 +55,11 @@ export default function RestaurantPage({
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [earnings, setEarnings] = useState<bigint>(0n);
+  const [agents, setAgents] = useState<AgentInfo[]>([]);
+  const [assigningOrder, setAssigningOrder] = useState<bigint | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<Record<string, string>>(
+    {},
+  );
 
   // Register form
   const [regName, setRegName] = useState("");
@@ -81,6 +93,11 @@ export default function RestaurantPage({
         setTab("register");
       }
     });
+    // Load verified agents for assignment
+    actor
+      .getVerifiedDeliveryAgents()
+      .then(setAgents)
+      .catch(() => {});
   }, [actor]);
 
   function loadMenu(id: bigint) {
@@ -179,6 +196,24 @@ export default function RestaurantPage({
     if (!actor || !restaurant) return;
     await actor.updateOrderStatus(orderId, status);
     loadOrders(restaurant.id);
+  }
+
+  async function assignAgent(orderId: bigint) {
+    if (!actor || !restaurant) return;
+    const agentPrincipal = selectedAgent[String(orderId)];
+    if (!agentPrincipal) return;
+    setAssigningOrder(orderId);
+    try {
+      await actor.restaurantAssignAgent(orderId, agentPrincipal as any);
+      loadOrders(restaurant.id);
+      // Refresh agents list
+      actor
+        .getVerifiedDeliveryAgents()
+        .then(setAgents)
+        .catch(() => {});
+    } finally {
+      setAssigningOrder(null);
+    }
   }
 
   if (loading)
@@ -509,7 +544,11 @@ export default function RestaurantPage({
                       type="button"
                       data-ocid={`restaurant.toggle_availability.toggle.${idx + 1}`}
                       onClick={() => toggleAvailability(item)}
-                      className={`text-xs px-2 py-1 rounded-full ${item.isAvailable ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        item.isAvailable
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
                     >
                       {item.isAvailable ? "Available" : "Unavailable"}
                     </button>
@@ -547,7 +586,9 @@ export default function RestaurantPage({
                   <div className="flex justify-between mb-2">
                     <div className="font-semibold">Order #{String(o.id)}</div>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor(o.status)}`}
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor(
+                        o.status,
+                      )}`}
                     >
                       {o.status.replace(/_/g, " ")}
                     </span>
@@ -555,6 +596,30 @@ export default function RestaurantPage({
                   <div className="text-sm text-muted-foreground mb-2">
                     {o.items.length} items • {formatPrice(o.totalAmount)}
                   </div>
+                  <div className="text-sm text-muted-foreground mb-3">
+                    📍 {o.deliveryAddress}
+                  </div>
+
+                  {/* Restaurant action buttons based on status */}
+                  {o.status === "pending" && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        data-ocid={`restaurant.accept_order.button.${idx + 1}`}
+                        onClick={() => acceptOrder(o.id, true)}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        data-ocid={`restaurant.reject_order.button.${idx + 1}`}
+                        onClick={() => acceptOrder(o.id, false)}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  )}
                   {o.status === "accepted" && (
                     <Button
                       size="sm"
@@ -574,6 +639,71 @@ export default function RestaurantPage({
                     >
                       Ready for Pickup
                     </Button>
+                  )}
+
+                  {/* Agent assignment for ready_for_pickup orders */}
+                  {o.status === "ready_for_pickup" && !o.deliveryAgentId && (
+                    <div className="mt-2 space-y-2">
+                      <div className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-1 rounded">
+                        🔍 Assign a delivery agent
+                      </div>
+                      {agents.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          No verified agents available right now.
+                        </p>
+                      ) : (
+                        <div className="flex gap-2">
+                          <select
+                            data-ocid={`restaurant.assign_agent.select.${idx + 1}`}
+                            className="flex-1 text-sm border rounded-md px-2 py-1 bg-background"
+                            value={selectedAgent[String(o.id)] || ""}
+                            onChange={(e) =>
+                              setSelectedAgent((prev) => ({
+                                ...prev,
+                                [String(o.id)]: e.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">Select agent...</option>
+                            {agents.map((a) => (
+                              <option
+                                key={String(a.principal)}
+                                value={String(a.principal)}
+                              >
+                                {a.name} ({a.phone})
+                              </option>
+                            ))}
+                          </select>
+                          <Button
+                            size="sm"
+                            data-ocid={`restaurant.assign_agent.button.${idx + 1}`}
+                            disabled={
+                              !selectedAgent[String(o.id)] ||
+                              assigningOrder === o.id
+                            }
+                            onClick={() => assignAgent(o.id)}
+                          >
+                            {assigningOrder === o.id ? (
+                              <Loader2 className="animate-spin" size={14} />
+                            ) : (
+                              "Assign"
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {o.status === "ready_for_pickup" && o.deliveryAgentId && (
+                    <div className="mt-2 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded">
+                      ⏳ Waiting for agent to accept the assignment...
+                    </div>
+                  )}
+
+                  {o.status === "picked_up" && (
+                    <div className="mt-2 text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                      🛵 Agent has picked up the order — on the way!
+                    </div>
                   )}
                 </CardContent>
               </Card>
