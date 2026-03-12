@@ -157,9 +157,11 @@ export default function App() {
     }
   }, [identity]);
 
+  // Auto-select panel based on profile role — only when identity is present
+  // to avoid a race condition after sign-out where profile hasn't cleared yet.
   // biome-ignore lint/correctness/useExhaustiveDependencies: selectPanel is stable
   useEffect(() => {
-    if (!profile || selectedPanel) return;
+    if (!profile || selectedPanel || !identity) return;
     if (isAdmin) {
       selectPanel("admin");
       return;
@@ -168,7 +170,7 @@ export default function App() {
     if (role === "restaurant_owner") selectPanel("restaurant");
     else if (role === "delivery_agent") selectPanel("delivery");
     else selectPanel("customer");
-  }, [profile, isAdmin, selectedPanel]);
+  }, [profile, isAdmin, selectedPanel, identity]);
 
   function handleSignOut() {
     clear();

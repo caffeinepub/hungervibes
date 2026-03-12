@@ -3,6 +3,7 @@ import {
   Loader2,
   LogOut,
   Package,
+  RefreshCw,
   Store,
   TrendingUp,
   Users,
@@ -60,6 +61,7 @@ export default function AdminPage({
     ordersByStatus: [string, bigint][];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Coupon form
   const [cpCode, setCpCode] = useState("");
@@ -68,9 +70,10 @@ export default function AdminPage({
   const [cpExpiry, setCpExpiry] = useState("");
   const [savingCoupon, setSavingCoupon] = useState(false);
 
-  async function loadAll() {
+  async function loadAll(isRefresh = false) {
     if (!actor) return;
-    setLoading(true);
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
       const [rests, allOrders, cust, ag, own, rev, anal] = await Promise.all([
         actor.getAllRestaurants(),
@@ -96,6 +99,7 @@ export default function AdminPage({
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
@@ -106,15 +110,15 @@ export default function AdminPage({
 
   async function approveRest(id: bigint) {
     await actor?.approveRestaurant(id);
-    loadAll();
+    loadAll(true);
   }
   async function rejectRest(id: bigint) {
     await actor?.rejectRestaurant(id);
-    loadAll();
+    loadAll(true);
   }
   async function suspendRest(id: bigint) {
     await actor?.suspendRestaurant(id);
-    loadAll();
+    loadAll(true);
   }
 
   async function createCoupon(e: React.FormEvent) {
@@ -142,6 +146,10 @@ export default function AdminPage({
     (r) => !r.isApproved && !r.isSuspended,
   );
   const approvedRestaurants = restaurants.filter((r) => r.isApproved);
+
+  const pendingAgents = agents.filter((u) => !u.isVerified && !u.isSuspended);
+  const verifiedAgents = agents.filter((u) => u.isVerified && !u.isSuspended);
+  const suspendedAgents = agents.filter((u) => u.isSuspended);
 
   const navItems: { id: Tab; label: string; icon: string }[] = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
@@ -229,7 +237,22 @@ export default function AdminPage({
               <>
                 {tab === "dashboard" && (
                   <div className="space-y-4">
-                    <h2 className="text-xl font-bold">Platform Overview</h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold">Platform Overview</h2>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-ocid="admin.dashboard.refresh.button"
+                        onClick={() => loadAll(true)}
+                        disabled={refreshing}
+                      >
+                        <RefreshCw
+                          size={14}
+                          className={`mr-1 ${refreshing ? "animate-spin" : ""}`}
+                        />
+                        Refresh
+                      </Button>
+                    </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <Card>
                         <CardContent className="p-4 text-center">
@@ -279,15 +302,22 @@ export default function AdminPage({
                         </CardContent>
                       </Card>
                     </div>
+
+                    {/* Warning: Pending restaurants */}
                     {pendingRestaurants.length > 0 && (
-                      <Card className="border-yellow-300">
-                        <CardHeader>
-                          <CardTitle className="text-sm text-yellow-800">
-                            ⚠️ {pendingRestaurants.length} restaurant(s) pending
-                            approval
+                      <Card className="border-2 border-yellow-400 bg-yellow-50">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-bold text-yellow-800">
+                            ⚠️ {pendingRestaurants.length} Restaurant
+                            {pendingRestaurants.length > 1 ? "s" : ""} Pending
+                            Approval
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-0">
+                          <p className="text-xs text-yellow-700 mb-2">
+                            New restaurant registrations are waiting for your
+                            review.
+                          </p>
                           <Button
                             size="sm"
                             data-ocid="admin.go_to_restaurants.button"
@@ -298,6 +328,33 @@ export default function AdminPage({
                         </CardContent>
                       </Card>
                     )}
+
+                    {/* Warning: Pending delivery agents */}
+                    {pendingAgents.length > 0 && (
+                      <Card className="border-2 border-orange-400 bg-orange-50">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-bold text-orange-800">
+                            🛵 {pendingAgents.length} Delivery Agent
+                            {pendingAgents.length > 1 ? "s" : ""} Pending
+                            Verification
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-xs text-orange-700 mb-2">
+                            Delivery agents are awaiting account verification.
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            data-ocid="admin.go_to_agents.button"
+                            onClick={() => setTab("users")}
+                          >
+                            View Agents
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {analytics && (
                       <Card>
                         <CardHeader>
@@ -329,31 +386,56 @@ export default function AdminPage({
 
                 {tab === "restaurants" && (
                   <div className="space-y-4">
-                    <h2 className="text-xl font-bold">Restaurants</h2>
-                    {pendingRestaurants.length > 0 && (
-                      <div>
-                        <div className="font-semibold text-sm text-muted-foreground mb-2">
-                          Pending Approval ({pendingRestaurants.length})
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold">Restaurants</h2>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-ocid="admin.restaurants.refresh.button"
+                        onClick={() => loadAll(true)}
+                        disabled={refreshing}
+                      >
+                        <RefreshCw
+                          size={14}
+                          className={`mr-1 ${refreshing ? "animate-spin" : ""}`}
+                        />
+                        Refresh
+                      </Button>
+                    </div>
+
+                    {pendingRestaurants.length > 0 ? (
+                      <div className="rounded-xl border-2 border-yellow-400 bg-yellow-50 p-4 space-y-3">
+                        <div className="font-bold text-yellow-900 flex items-center gap-2">
+                          ⚠️ Pending Approval
+                          <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full">
+                            {pendingRestaurants.length}
+                          </span>
                         </div>
                         <div className="space-y-2">
                           {pendingRestaurants.map((r, idx) => (
                             <Card
                               key={String(r.id)}
                               data-ocid={`admin.pending_restaurant.item.${idx + 1}`}
-                              className="border-yellow-300"
+                              className="border-yellow-300 bg-white"
                             >
                               <CardContent className="p-4">
                                 <div className="font-semibold">{r.name}</div>
                                 <div className="text-sm text-muted-foreground">
                                   {r.cuisineType} • {r.address}
                                 </div>
-                                <div className="flex gap-2 mt-2">
+                                {r.phone && (
+                                  <div className="text-sm text-muted-foreground">
+                                    📞 {r.phone}
+                                  </div>
+                                )}
+                                <div className="flex gap-2 mt-3">
                                   <Button
                                     size="sm"
                                     data-ocid={`admin.approve_restaurant.button.${idx + 1}`}
                                     onClick={() => approveRest(r.id)}
+                                    className="bg-green-600 hover:bg-green-700"
                                   >
-                                    Approve
+                                    ✓ Approve
                                   </Button>
                                   <Button
                                     size="sm"
@@ -361,7 +443,7 @@ export default function AdminPage({
                                     data-ocid={`admin.reject_restaurant.button.${idx + 1}`}
                                     onClick={() => rejectRest(r.id)}
                                   >
-                                    Reject
+                                    ✗ Reject
                                   </Button>
                                 </div>
                               </CardContent>
@@ -369,7 +451,12 @@ export default function AdminPage({
                           ))}
                         </div>
                       </div>
+                    ) : (
+                      <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        ✅ No pending restaurant approvals
+                      </div>
                     )}
+
                     <div>
                       <div className="font-semibold text-sm text-muted-foreground mb-2">
                         All Restaurants ({restaurants.length})
@@ -398,8 +485,8 @@ export default function AdminPage({
                                     </span>
                                   )}
                                   {!r.isApproved && !r.isSuspended && (
-                                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
-                                      Pending
+                                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-semibold">
+                                      ⏳ Pending
                                     </span>
                                   )}
                                 </div>
@@ -417,6 +504,14 @@ export default function AdminPage({
                             </CardContent>
                           </Card>
                         ))}
+                        {restaurants.length === 0 && (
+                          <div
+                            data-ocid="admin.restaurants.empty_state"
+                            className="text-center py-12 text-muted-foreground"
+                          >
+                            No restaurants registered yet
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -424,44 +519,142 @@ export default function AdminPage({
 
                 {tab === "users" && (
                   <div className="space-y-4">
-                    <h2 className="text-xl font-bold">Users</h2>
-                    <div className="space-y-2">
-                      <div className="font-semibold text-sm">
-                        Delivery Agents ({agents.length})
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold">Users</h2>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-ocid="admin.users.refresh.button"
+                        onClick={() => loadAll(true)}
+                        disabled={refreshing}
+                      >
+                        <RefreshCw
+                          size={14}
+                          className={`mr-1 ${refreshing ? "animate-spin" : ""}`}
+                        />
+                        Refresh
+                      </Button>
+                    </div>
+
+                    {/* Delivery Agents Section */}
+                    <div className="space-y-3">
+                      <div className="font-semibold text-sm flex items-center gap-2">
+                        🛵 Delivery Agents ({agents.length})
+                        {pendingAgents.length > 0 && (
+                          <span className="bg-orange-400 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {pendingAgents.length} pending
+                          </span>
+                        )}
                       </div>
-                      {agents.map((u, idx) => (
-                        <Card
-                          key={`${u.name}-${u.phone}`}
-                          data-ocid={`admin.agent.item.${idx + 1}`}
+
+                      {/* Pending agents — most prominent */}
+                      {pendingAgents.length > 0 && (
+                        <div className="rounded-xl border-2 border-orange-400 bg-orange-50 p-4 space-y-2">
+                          <div className="font-bold text-orange-900 text-sm">
+                            ⏳ Awaiting Verification
+                          </div>
+                          <p className="text-xs text-orange-700">
+                            These agents have registered and are waiting for
+                            admin approval. To approve or suspend an agent,
+                            please use the backend admin tools or contact
+                            support with the agent's name and phone number.
+                          </p>
+                          {pendingAgents.map((u, idx) => (
+                            <Card
+                              key={`pending-${u.name}-${u.phone}`}
+                              data-ocid={`admin.pending_agent.item.${idx + 1}`}
+                              className="border-orange-300 bg-white"
+                            >
+                              <CardContent className="p-3 flex items-center justify-between">
+                                <div>
+                                  <div className="font-semibold text-sm">
+                                    {u.name}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {u.phone}
+                                  </div>
+                                </div>
+                                <span className="text-xs bg-yellow-200 text-yellow-900 font-bold px-2 py-1 rounded-full">
+                                  PENDING
+                                </span>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Verified agents */}
+                      {verifiedAgents.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-xs font-semibold text-green-700 uppercase tracking-wide">
+                            Verified Agents ({verifiedAgents.length})
+                          </div>
+                          {verifiedAgents.map((u, idx) => (
+                            <Card
+                              key={`verified-${u.name}-${u.phone}`}
+                              data-ocid={`admin.agent.item.${idx + 1}`}
+                            >
+                              <CardContent className="p-3 flex items-center justify-between">
+                                <div>
+                                  <div className="font-medium text-sm">
+                                    {u.name}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {u.phone}
+                                  </div>
+                                </div>
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-semibold">
+                                  ✓ Verified
+                                </span>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Suspended agents */}
+                      {suspendedAgents.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-xs font-semibold text-red-700 uppercase tracking-wide">
+                            Suspended Agents ({suspendedAgents.length})
+                          </div>
+                          {suspendedAgents.map((u, idx) => (
+                            <Card
+                              key={`suspended-${u.name}-${u.phone}`}
+                              data-ocid={`admin.suspended_agent.item.${idx + 1}`}
+                            >
+                              <CardContent className="p-3 flex items-center justify-between">
+                                <div>
+                                  <div className="font-medium text-sm">
+                                    {u.name}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {u.phone}
+                                  </div>
+                                </div>
+                                <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full font-semibold">
+                                  Suspended
+                                </span>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+
+                      {agents.length === 0 && (
+                        <div
+                          data-ocid="admin.agents.empty_state"
+                          className="text-center py-8 text-muted-foreground text-sm"
                         >
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div>
-                              <div className="font-medium">{u.name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {u.phone}
-                              </div>
-                              <div className="flex gap-1 mt-1">
-                                {u.isVerified ? (
-                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                                    Verified
-                                  </span>
-                                ) : (
-                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
-                                    Unverified
-                                  </span>
-                                )}
-                                {u.isSuspended && (
-                                  <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
-                                    Suspended
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                      <div className="font-semibold text-sm mt-4">
-                        Customers ({customers.length})
+                          No delivery agents registered yet
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Customers Section */}
+                    <div className="space-y-2 mt-4">
+                      <div className="font-semibold text-sm">
+                        👤 Customers ({customers.length})
                       </div>
                       {customers.map((u, idx) => (
                         <Card
@@ -476,6 +669,14 @@ export default function AdminPage({
                           </CardContent>
                         </Card>
                       ))}
+                      {customers.length === 0 && (
+                        <div
+                          data-ocid="admin.customers.empty_state"
+                          className="text-center py-8 text-muted-foreground text-sm"
+                        >
+                          No customers registered yet
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

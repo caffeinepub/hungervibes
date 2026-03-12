@@ -89,15 +89,54 @@ export default function DeliveryPage({
     ["delivered", "cancelled"].includes(o.status),
   );
 
+  // Show a proper pending screen with sign-out and home buttons so the user is never stuck
   if (!profile.isVerified) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center">
-        <div className="text-5xl mb-4">⏳</div>
-        <h2 className="text-xl font-bold mb-2">Verification Pending</h2>
-        <p className="text-muted-foreground">
-          Your account is being verified by an admin. You'll be able to accept
-          deliveries once approved.
-        </p>
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-4 py-8"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.97 0.03 80), oklch(0.99 0.01 60))",
+        }}
+      >
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8 text-center space-y-5">
+          <div className="text-6xl">⏳</div>
+          <h2 className="text-xl font-bold">Verification Pending</h2>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Your delivery agent account is under review by our admin team.
+            You'll be able to start accepting deliveries once your profile is
+            approved.
+          </p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-left space-y-1">
+            <p className="text-xs font-semibold text-yellow-800">
+              What happens next?
+            </p>
+            <p className="text-xs text-yellow-700">
+              Our admin team will review your profile and approve it shortly.
+              Check back in a few hours.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              data-ocid="delivery.pending.home.button"
+              variant="outline"
+              className="w-full"
+              onClick={onHome}
+            >
+              <Home size={16} className="mr-2" />
+              Back to Home
+            </Button>
+            <Button
+              data-ocid="delivery.pending.sign_out.button"
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={onSignOut}
+            >
+              <LogOut size={16} className="mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
