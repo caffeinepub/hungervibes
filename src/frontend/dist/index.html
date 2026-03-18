@@ -21,10 +21,10 @@
       .splash-bar { width: 200px; height: 4px; background: #fed7aa; border-radius: 99px; overflow: hidden; }
       .splash-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #f97316, #ea580c); border-radius: 99px; animation: fill 2.5s ease-out forwards; }
       @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-      @keyframes fill { 0%{width:0%} 60%{width:75%} 90%{width:92%} 100%{width:92%} }
+      @keyframes fill { 0%{width:0%} 80%{width:90%} 100%{width:100%} }
     </style>
-    <script type="module" crossorigin src="/assets/index-Dh6qV3Zq.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-8MY64oTJ.css">
+    <script type="module" crossorigin src="/assets/index-DV-6S0ca.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DX0hXqbY.css">
   </head>
   <body>
     <div id="splash">
@@ -35,14 +35,23 @@
     </div>
     <div id="root"></div>
     <script>
-      // Hide splash as soon as React renders something
+      // Force-remove splash after 3 seconds max, regardless of React
+      setTimeout(function() {
+        var splash = document.getElementById('splash');
+        if (splash && !splash.classList.contains('hidden')) {
+          splash.classList.add('hidden');
+          setTimeout(function(){ if (splash.parentNode) splash.parentNode.removeChild(splash); }, 450);
+        }
+      }, 3000);
+
+      // Also hide splash as soon as React renders something
       var _observer = new MutationObserver(function() {
         var root = document.getElementById('root');
         if (root && root.children.length > 0) {
           var splash = document.getElementById('splash');
           if (splash) {
             splash.classList.add('hidden');
-            setTimeout(function(){ splash.remove(); }, 450);
+            setTimeout(function(){ if (splash.parentNode) splash.parentNode.removeChild(splash); }, 450);
           }
           _observer.disconnect();
         }

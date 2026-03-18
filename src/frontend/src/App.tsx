@@ -40,7 +40,31 @@ function savePanel(panel: PanelType | null) {
   } catch {}
 }
 
-function PageLoader() {
+const LOADING_MESSAGES = [
+  "Loading...",
+  "Waking up the server, please wait...",
+  "This is taking longer than usual. Almost there...",
+];
+
+interface PageLoaderProps {
+  onSkip?: () => void;
+}
+
+function PageLoader({ onSkip }: PageLoaderProps) {
+  const [msgIndex, setMsgIndex] = useState(0);
+  const [showSkip, setShowSkip] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setMsgIndex(1), 3000);
+    const t2 = setTimeout(() => setMsgIndex(2), 8000);
+    const t3 = setTimeout(() => setShowSkip(true), 8000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, []);
+
   return (
     <div
       className="min-h-screen flex items-center justify-center"
@@ -87,9 +111,19 @@ function PageLoader() {
             />
           </svg>
           <span className="text-sm font-medium" style={{ color: "#9a3412" }}>
-            Loading...
+            {LOADING_MESSAGES[msgIndex]}
           </span>
         </div>
+        {showSkip && onSkip && (
+          <button
+            type="button"
+            data-ocid="loader.secondary_button"
+            onClick={onSkip}
+            className="mt-2 px-5 py-2 rounded-lg bg-orange-100 text-orange-700 font-semibold text-sm hover:bg-orange-200 transition-colors border border-orange-200"
+          >
+            Continue to Home Page
+          </button>
+        )}
       </div>
     </div>
   );
@@ -187,9 +221,12 @@ export default function App() {
     async function load() {
       setLoading(true);
       try {
-        const [p, admin] = await Promise.all([
-          actor!.getCallerUserProfile(),
-          actor!.isCallerAdmin(),
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), 10000),
+        );
+        const [p, admin] = await Promise.race([
+          Promise.all([actor!.getCallerUserProfile(), actor!.isCallerAdmin()]),
+          timeout,
         ]);
         if (!cancelled) {
           setProfile(p ?? null);
@@ -278,9 +315,14 @@ export default function App() {
     return undefined;
   }
 
+  function handleSkipLoading() {
+    setLoading(false);
+    setProfile(null);
+  }
+
   // Global loading
   if (loginStatus === "logging-in" || (identity && loading)) {
-    return <PageLoader />;
+    return <PageLoader onSkip={handleSkipLoading} />;
   }
 
   return (

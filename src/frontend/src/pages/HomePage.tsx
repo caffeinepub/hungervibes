@@ -176,16 +176,6 @@ export default function HomePage({
           <span className="text-xl">🛵</span>
           <span className="text-xs font-semibold">Delivery Agent</span>
         </button>
-        <div className="bottom-bar-divider" aria-hidden="true" />
-        <button
-          type="button"
-          data-ocid="home.admin.button"
-          onClick={() => onSelectPanel("admin")}
-          className="bottom-bar-btn"
-        >
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs font-semibold">Admin</span>
-        </button>
       </nav>
 
       {/* Footer credit */}
