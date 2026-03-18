@@ -337,11 +337,7 @@ export default function App() {
         ) : !selectedPanel ? (
           <HomePage onSelectPanel={handleSelectPanel} />
         ) : !identity ? (
-          <AuthPage
-            defaultRole={getDefaultRole()}
-            onAdminLogin={() => setShowAdminLogin(true)}
-            onBack={handleGoHome}
-          />
+          <AuthPage defaultRole={getDefaultRole()} onBack={handleGoHome} />
         ) : profile === undefined ? (
           <PageLoader />
         ) : selectedPanel === "admin" && isAdmin ? (
@@ -359,7 +355,6 @@ export default function App() {
               setProfile(undefined);
               setLoading(true);
             }}
-            onAdminLogin={() => setShowAdminLogin(true)}
             onBack={handleGoHome}
           />
         ) : selectedPanel === "restaurant" &&
