@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Role } from "./backend";
 import type { UserProfile } from "./backend";
@@ -43,10 +42,54 @@ function savePanel(panel: PanelType | null) {
 
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="animate-spin text-primary" size={40} />
-        <p className="text-muted-foreground text-sm">Loading HungerVibes...</p>
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
+      }}
+    >
+      <div className="flex flex-col items-center gap-4 px-8 py-10 rounded-2xl bg-white/70 backdrop-blur-sm shadow-xl border border-orange-100">
+        <div
+          className="text-5xl"
+          style={{ filter: "drop-shadow(0 4px 16px rgba(251,146,60,0.5))" }}
+        >
+          🔥
+        </div>
+        <h2
+          className="text-2xl font-black tracking-tight"
+          style={{ color: "#ea580c" }}
+        >
+          HungerVibes
+        </h2>
+        <div className="flex items-center gap-2">
+          <svg
+            aria-hidden="true"
+            className="animate-spin"
+            style={{ color: "#f97316" }}
+            width={22}
+            height={22}
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeOpacity="0.2"
+            />
+            <path
+              d="M12 2a10 10 0 0 1 10 10"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="text-sm font-medium" style={{ color: "#9a3412" }}>
+            Loading...
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -126,7 +169,8 @@ export default function App() {
     undefined,
   );
   const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Skip loading state if no identity — nothing to fetch
+  const [loading, setLoading] = useState(() => !!identity);
   const [selectedPanel, setSelectedPanel] = useState<PanelType | null>(
     getSavedPanel,
   );

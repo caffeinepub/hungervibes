@@ -3,6 +3,7 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 type PanelType = "customer" | "restaurant" | "delivery" | "admin";
 
+// Reduced from 10 to 6 emojis to cut simultaneous animation cost
 const foodEmojis = [
   {
     emoji: "🍕",
@@ -55,16 +56,6 @@ const foodEmojis = [
     },
   },
   {
-    emoji: "🧆",
-    id: "falafel",
-    style: {
-      top: "20%",
-      left: "50%",
-      animationDelay: "3s",
-      animationDuration: "23s",
-    },
-  },
-  {
     emoji: "🥗",
     id: "salad",
     style: {
@@ -72,36 +63,6 @@ const foodEmojis = [
       right: "10%",
       animationDelay: "5s",
       animationDuration: "21s",
-    },
-  },
-  {
-    emoji: "🍰",
-    id: "cake",
-    style: {
-      top: "55%",
-      left: "40%",
-      animationDelay: "7s",
-      animationDuration: "24s",
-    },
-  },
-  {
-    emoji: "🍩",
-    id: "donut",
-    style: {
-      top: "80%",
-      left: "15%",
-      animationDelay: "2.5s",
-      animationDuration: "17s",
-    },
-  },
-  {
-    emoji: "🥘",
-    id: "curry",
-    style: {
-      top: "10%",
-      left: "30%",
-      animationDelay: "8s",
-      animationDuration: "26s",
     },
   },
 ];

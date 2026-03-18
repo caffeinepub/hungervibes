@@ -2,11 +2,52 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title></title>
-    <script type="module" crossorigin src="/assets/index-BUhtkPfW.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BL2Qdp-r.css">
+    <title>HungerVibes</title>
+    <meta name="description" content="India's favourite food delivery platform" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #fff7ed; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+      #splash {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #fed7aa 100%);
+        transition: opacity 0.4s ease;
+      }
+      #splash.hidden { opacity: 0; pointer-events: none; }
+      .splash-icon { font-size: 72px; margin-bottom: 16px; animation: pulse 1.5s ease-in-out infinite; filter: drop-shadow(0 4px 24px rgba(251,146,60,0.6)); }
+      .splash-title { font-size: 32px; font-weight: 900; color: #1a1a1a; letter-spacing: -1px; margin-bottom: 8px; }
+      .splash-sub { font-size: 14px; color: #9a3412; font-weight: 600; margin-bottom: 32px; }
+      .splash-bar { width: 200px; height: 4px; background: #fed7aa; border-radius: 99px; overflow: hidden; }
+      .splash-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #f97316, #ea580c); border-radius: 99px; animation: fill 2.5s ease-out forwards; }
+      @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+      @keyframes fill { 0%{width:0%} 60%{width:75%} 90%{width:92%} 100%{width:92%} }
+    </style>
+    <script type="module" crossorigin src="/assets/index-Dh6qV3Zq.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-8MY64oTJ.css">
   </head>
   <body>
+    <div id="splash">
+      <div class="splash-icon">🔥</div>
+      <div class="splash-title">HungerVibes</div>
+      <div class="splash-sub">India's favourite food delivery platform</div>
+      <div class="splash-bar"><div class="splash-fill"></div></div>
+    </div>
     <div id="root"></div>
+    <script>
+      // Hide splash as soon as React renders something
+      var _observer = new MutationObserver(function() {
+        var root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          var splash = document.getElementById('splash');
+          if (splash) {
+            splash.classList.add('hidden');
+            setTimeout(function(){ splash.remove(); }, 450);
+          }
+          _observer.disconnect();
+        }
+      });
+      _observer.observe(document.getElementById('root'), { childList: true });
+    </script>
   </body>
 </html>
