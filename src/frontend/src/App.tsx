@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Role } from "./backend";
 import type { UserProfile } from "./backend";
+import { Toaster } from "./components/ui/sonner";
 import { useActor } from "./hooks/useActor";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 
@@ -51,6 +52,13 @@ function PageLoader() {
   );
 }
 
+const panelLabels: Record<PanelType, string> = {
+  customer: "Customer",
+  restaurant: "Restaurant Partner",
+  delivery: "Delivery Agent",
+  admin: "Admin",
+};
+
 const roleLabels: Record<string, string> = {
   customer: "Customer",
   restaurant_owner: "Restaurant Partner",
@@ -59,11 +67,17 @@ const roleLabels: Record<string, string> = {
 
 interface WrongPanelProps {
   profileRole: string;
+  requiredPanel: string;
   onSignOut: () => void;
   onHome: () => void;
 }
 
-function WrongPanelScreen({ profileRole, onSignOut, onHome }: WrongPanelProps) {
+function WrongPanelScreen({
+  profileRole,
+  requiredPanel,
+  onSignOut,
+  onHome,
+}: WrongPanelProps) {
   const label = roleLabels[profileRole] ?? profileRole;
   return (
     <div
@@ -77,9 +91,9 @@ function WrongPanelScreen({ profileRole, onSignOut, onHome }: WrongPanelProps) {
         <div className="text-5xl">🚫</div>
         <h2 className="text-xl font-bold text-foreground">Wrong Panel</h2>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          This panel is for <strong>Delivery Agents</strong> only. Your account
+          This panel is for <strong>{requiredPanel}</strong> only. Your account
           is registered as a <strong>{label}</strong>. Please sign out and log
-          in with a Delivery Agent account.
+          in with a {requiredPanel} account.
         </p>
         <div className="flex flex-col gap-3 pt-2">
           <button
@@ -158,7 +172,6 @@ export default function App() {
   }, [identity]);
 
   // Auto-select panel based on profile role — only when identity is present
-  // to avoid a race condition after sign-out where profile hasn't cleared yet.
   // biome-ignore lint/correctness/useExhaustiveDependencies: selectPanel is stable
   useEffect(() => {
     if (!profile || selectedPanel || !identity) return;
@@ -214,7 +227,7 @@ export default function App() {
     }
   }
 
-  // Derive the defaultRole for AuthPage based on selectedPanel
+  // defaultRole is undefined for customer panel — no role restriction on registration
   function getDefaultRole(): Role | undefined {
     if (selectedPanel === "delivery") return Role.delivery_agent;
     if (selectedPanel === "restaurant") return Role.restaurant_owner;
@@ -227,83 +240,92 @@ export default function App() {
   }
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      {showAdminLogin ? (
-        <AdminLoginPage
-          onSuccess={handleAdminLoginSuccess}
-          onBack={() => setShowAdminLogin(false)}
-        />
-      ) : !selectedPanel ? (
-        <HomePage onSelectPanel={handleSelectPanel} />
-      ) : !identity ? (
-        <AuthPage
-          defaultRole={getDefaultRole()}
-          onAdminLogin={() => setShowAdminLogin(true)}
-          onBack={handleGoHome}
-        />
-      ) : profile === undefined ? (
-        <PageLoader />
-      ) : profile === null ? (
-        <AuthPage
-          defaultRole={getDefaultRole()}
-          onRegistered={() => {
-            setProfile(undefined);
-            setLoading(true);
-          }}
-          onAdminLogin={() => setShowAdminLogin(true)}
-          onBack={handleGoHome}
-        />
-      ) : selectedPanel === "admin" && isAdmin ? (
-        <AdminPage
-          profile={profile}
-          onSignOut={handleSignOut}
-          onHome={handleGoHome}
-        />
-      ) : selectedPanel === "restaurant" &&
-        profile.role === "restaurant_owner" ? (
-        <RestaurantPage
-          profile={profile}
-          onSignOut={handleSignOut}
-          onHome={handleGoHome}
-        />
-      ) : selectedPanel === "delivery" && profile.role === "delivery_agent" ? (
-        <DeliveryPage
-          profile={profile}
-          onSignOut={handleSignOut}
-          onHome={handleGoHome}
-        />
-      ) : selectedPanel === "delivery" && profile.role !== "delivery_agent" ? (
-        <WrongPanelScreen
-          profileRole={profile.role as string}
-          onSignOut={handleSignOut}
-          onHome={handleGoHome}
-        />
-      ) : selectedPanel === "restaurant" &&
-        profile.role !== "restaurant_owner" ? (
-        <WrongPanelScreen
-          profileRole={profile.role as string}
-          onSignOut={handleSignOut}
-          onHome={handleGoHome}
-        />
-      ) : profile.role === "restaurant_owner" ? (
-        <RestaurantPage
-          profile={profile}
-          onSignOut={handleSignOut}
-          onHome={handleGoHome}
-        />
-      ) : profile.role === "delivery_agent" ? (
-        <DeliveryPage
-          profile={profile}
-          onSignOut={handleSignOut}
-          onHome={handleGoHome}
-        />
-      ) : (
-        <CustomerPage
-          profile={profile}
-          onSignOut={handleSignOut}
-          onHome={handleGoHome}
-        />
-      )}
-    </Suspense>
+    <>
+      <Toaster richColors position="top-right" />
+      <Suspense fallback={<PageLoader />}>
+        {showAdminLogin ? (
+          <AdminLoginPage
+            onSuccess={handleAdminLoginSuccess}
+            onBack={() => setShowAdminLogin(false)}
+          />
+        ) : !selectedPanel ? (
+          <HomePage onSelectPanel={handleSelectPanel} />
+        ) : !identity ? (
+          <AuthPage
+            defaultRole={getDefaultRole()}
+            onAdminLogin={() => setShowAdminLogin(true)}
+            onBack={handleGoHome}
+          />
+        ) : profile === undefined ? (
+          <PageLoader />
+        ) : selectedPanel === "admin" && isAdmin ? (
+          // Admin check BEFORE profile === null so admins without a user-profile
+          // record are still routed to the Admin Panel instead of registration.
+          <AdminPage
+            profile={profile as UserProfile}
+            onSignOut={handleSignOut}
+            onHome={handleGoHome}
+          />
+        ) : profile === null ? (
+          <AuthPage
+            defaultRole={getDefaultRole()}
+            onRegistered={() => {
+              setProfile(undefined);
+              setLoading(true);
+            }}
+            onAdminLogin={() => setShowAdminLogin(true)}
+            onBack={handleGoHome}
+          />
+        ) : selectedPanel === "restaurant" &&
+          profile.role === "restaurant_owner" ? (
+          <RestaurantPage
+            profile={profile}
+            onSignOut={handleSignOut}
+            onHome={handleGoHome}
+          />
+        ) : selectedPanel === "delivery" &&
+          profile.role === "delivery_agent" ? (
+          <DeliveryPage
+            profile={profile}
+            onSignOut={handleSignOut}
+            onHome={handleGoHome}
+          />
+        ) : selectedPanel === "delivery" &&
+          profile.role !== "delivery_agent" ? (
+          <WrongPanelScreen
+            profileRole={profile.role as string}
+            requiredPanel={panelLabels[selectedPanel]}
+            onSignOut={handleSignOut}
+            onHome={handleGoHome}
+          />
+        ) : selectedPanel === "restaurant" &&
+          profile.role !== "restaurant_owner" ? (
+          <WrongPanelScreen
+            profileRole={profile.role as string}
+            requiredPanel={panelLabels[selectedPanel]}
+            onSignOut={handleSignOut}
+            onHome={handleGoHome}
+          />
+        ) : profile.role === "restaurant_owner" ? (
+          <RestaurantPage
+            profile={profile}
+            onSignOut={handleSignOut}
+            onHome={handleGoHome}
+          />
+        ) : profile.role === "delivery_agent" ? (
+          <DeliveryPage
+            profile={profile}
+            onSignOut={handleSignOut}
+            onHome={handleGoHome}
+          />
+        ) : (
+          <CustomerPage
+            profile={profile}
+            onSignOut={handleSignOut}
+            onHome={handleGoHome}
+          />
+        )}
+      </Suspense>
+    </>
   );
 }

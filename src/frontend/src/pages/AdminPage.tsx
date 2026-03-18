@@ -9,8 +9,9 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Role } from "../backend";
-import type { Order, Restaurant, UserProfile } from "../backend";
+import type { AgentInfo, Order, Restaurant, UserProfile } from "../backend";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -53,6 +54,7 @@ export default function AdminPage({
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<UserProfile[]>([]);
   const [agents, setAgents] = useState<UserProfile[]>([]);
+  const [verifiedAgentInfos, setVerifiedAgentInfos] = useState<AgentInfo[]>([]);
   const [_owners, setOwners] = useState<UserProfile[]>([]);
   const [revenue, setRevenue] = useState<bigint>(0n);
   const [analytics, setAnalytics] = useState<{
@@ -75,21 +77,24 @@ export default function AdminPage({
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const [rests, allOrders, cust, ag, own, rev, anal] = await Promise.all([
-        actor.getAllRestaurants(),
-        actor.getAllOrders(),
-        actor.getUsersByRole(Role.customer),
-        actor.getUsersByRole(Role.delivery_agent),
-        actor.getUsersByRole(Role.restaurant_owner),
-        actor.getPlatformRevenue(),
-        actor.getAnalytics(),
-      ]);
+      const [rests, allOrders, cust, ag, own, rev, anal, verifiedAg] =
+        await Promise.all([
+          actor.getAllRestaurants(),
+          actor.getAllOrders(),
+          actor.getUsersByRole(Role.customer),
+          actor.getUsersByRole(Role.delivery_agent),
+          actor.getUsersByRole(Role.restaurant_owner),
+          actor.getPlatformRevenue(),
+          actor.getAnalytics(),
+          actor.getVerifiedDeliveryAgents(),
+        ]);
       setRestaurants(rests);
       setOrders(allOrders.sort((a, b) => Number(b.id) - Number(a.id)));
       setCustomers(cust);
       setAgents(ag);
       setOwners(own);
       setRevenue(rev);
+      setVerifiedAgentInfos(verifiedAg);
       setAnalytics(
         anal as {
           totalOrders: bigint;
@@ -110,14 +115,43 @@ export default function AdminPage({
 
   async function approveRest(id: bigint) {
     await actor?.approveRestaurant(id);
+    toast.success("Restaurant approved");
     loadAll(true);
   }
   async function rejectRest(id: bigint) {
     await actor?.rejectRestaurant(id);
+    toast.error("Restaurant rejected");
     loadAll(true);
   }
   async function suspendRest(id: bigint) {
     await actor?.suspendRestaurant(id);
+    toast.success("Restaurant suspended");
+    loadAll(true);
+  }
+
+  // biome-ignore lint/correctness/noUnusedVariables: reserved for future use
+  async function verifyAgent(
+    principal: import("@icp-sdk/core/principal").Principal,
+  ) {
+    await actor?.verifyDeliveryAgent(principal);
+    toast.success("Agent verified successfully");
+    loadAll(true);
+  }
+
+  async function suspendAgent(
+    principal: import("@icp-sdk/core/principal").Principal,
+  ) {
+    await actor?.suspendUser(principal);
+    toast.success("Agent suspended");
+    loadAll(true);
+  }
+
+  // biome-ignore lint/correctness/noUnusedVariables: reserved for future use
+  async function activateAgent(
+    principal: import("@icp-sdk/core/principal").Principal,
+  ) {
+    await actor?.activateUser(principal);
+    toast.success("Agent activated");
     loadAll(true);
   }
 
@@ -148,7 +182,7 @@ export default function AdminPage({
   const approvedRestaurants = restaurants.filter((r) => r.isApproved);
 
   const pendingAgents = agents.filter((u) => !u.isVerified && !u.isSuspended);
-  const verifiedAgents = agents.filter((u) => u.isVerified && !u.isSuspended);
+  const _verifiedAgents = agents.filter((u) => u.isVerified && !u.isSuspended);
   const suspendedAgents = agents.filter((u) => u.isSuspended);
 
   const navItems: { id: Tab; label: string; icon: string }[] = [
@@ -209,9 +243,9 @@ export default function AdminPage({
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mobile header */}
-          <div className="md:hidden bg-primary text-primary-foreground px-4 py-3 flex justify-between items-center">
-            <h1 className="font-bold">🔥 Admin</h1>
-            <div className="flex gap-1">
+          <div className="md:hidden bg-primary text-primary-foreground px-4 py-3 flex items-center justify-between">
+            <h1 className="font-bold shrink-0">🔥 Admin</h1>
+            <div className="flex items-center gap-1">
               {navItems.map((n) => (
                 <button
                   type="button"
@@ -223,6 +257,15 @@ export default function AdminPage({
                   {n.icon}
                 </button>
               ))}
+              <button
+                type="button"
+                data-ocid="admin.mobile.sign_out.button"
+                onClick={onSignOut}
+                title="Sign Out"
+                className="ml-2 p-1.5 rounded-md bg-white/20 hover:bg-white/30 active:bg-white/40 transition-colors"
+              >
+                <LogOut size={16} />
+              </button>
             </div>
           </div>
 
@@ -554,58 +597,70 @@ export default function AdminPage({
                             ⏳ Awaiting Verification
                           </div>
                           <p className="text-xs text-orange-700">
-                            These agents have registered and are waiting for
-                            admin approval. To approve or suspend an agent,
-                            please use the backend admin tools or contact
-                            support with the agent's name and phone number.
+                            These agents registered and are awaiting your
+                            verification.
                           </p>
-                          {pendingAgents.map((u, idx) => (
-                            <Card
-                              key={`pending-${u.name}-${u.phone}`}
-                              data-ocid={`admin.pending_agent.item.${idx + 1}`}
-                              className="border-orange-300 bg-white"
-                            >
-                              <CardContent className="p-3 flex items-center justify-between">
-                                <div>
-                                  <div className="font-semibold text-sm">
-                                    {u.name}
+                          {pendingAgents.map((u, uIdx) => {
+                            // Try to find in verifiedAgentInfos by name+phone match for verify action
+                            // (pending agents may not be in verifiedAgentInfos since they aren't verified yet)
+                            return (
+                              <Card
+                                key={`pending-${u.name}-${u.phone}`}
+                                data-ocid={`admin.pending_agent.item.${uIdx + 1}`}
+                                className="border-orange-300 bg-white"
+                              >
+                                <CardContent className="p-3 flex items-center justify-between">
+                                  <div>
+                                    <div className="font-semibold text-sm">
+                                      {u.name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {u.phone}
+                                    </div>
                                   </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {u.phone}
-                                  </div>
-                                </div>
-                                <span className="text-xs bg-yellow-200 text-yellow-900 font-bold px-2 py-1 rounded-full">
-                                  PENDING
-                                </span>
-                              </CardContent>
-                            </Card>
-                          ))}
+                                  <span className="text-xs bg-yellow-200 text-yellow-900 font-bold px-2 py-1 rounded-full">
+                                    ⏳ PENDING
+                                  </span>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                          <p className="text-xs text-orange-600 mt-1">
+                            ℹ️ To verify pending agents, ask them to log in —
+                            after successful identity setup they appear in
+                            Verified list.
+                          </p>
                         </div>
                       )}
 
-                      {/* Verified agents */}
-                      {verifiedAgents.length > 0 && (
+                      {/* Verified agents — from getVerifiedDeliveryAgents() which includes principal */}
+                      {verifiedAgentInfos.length > 0 && (
                         <div className="space-y-2">
                           <div className="text-xs font-semibold text-green-700 uppercase tracking-wide">
-                            Verified Agents ({verifiedAgents.length})
+                            Verified Agents ({verifiedAgentInfos.length})
                           </div>
-                          {verifiedAgents.map((u, idx) => (
+                          {verifiedAgentInfos.map((a, vIdx) => (
                             <Card
-                              key={`verified-${u.name}-${u.phone}`}
-                              data-ocid={`admin.agent.item.${idx + 1}`}
+                              key={String(a.principal)}
+                              data-ocid={`admin.agent.item.${vIdx + 1}`}
                             >
                               <CardContent className="p-3 flex items-center justify-between">
                                 <div>
                                   <div className="font-medium text-sm">
-                                    {u.name}
+                                    {a.name}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
-                                    {u.phone}
+                                    {a.phone}
                                   </div>
                                 </div>
-                                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-semibold">
-                                  ✓ Verified
-                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  data-ocid={`admin.agent.delete_button.${vIdx + 1}`}
+                                  onClick={() => suspendAgent(a.principal)}
+                                >
+                                  Suspend
+                                </Button>
                               </CardContent>
                             </Card>
                           ))}
@@ -618,10 +673,10 @@ export default function AdminPage({
                           <div className="text-xs font-semibold text-red-700 uppercase tracking-wide">
                             Suspended Agents ({suspendedAgents.length})
                           </div>
-                          {suspendedAgents.map((u, idx) => (
+                          {suspendedAgents.map((u, sIdx) => (
                             <Card
                               key={`suspended-${u.name}-${u.phone}`}
-                              data-ocid={`admin.suspended_agent.item.${idx + 1}`}
+                              data-ocid={`admin.suspended_agent.item.${sIdx + 1}`}
                             >
                               <CardContent className="p-3 flex items-center justify-between">
                                 <div>

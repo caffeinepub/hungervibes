@@ -7,6 +7,7 @@ import {
   Package,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { OrderStatus } from "../backend";
 import type { Order, UserProfile } from "../backend";
 import { Button } from "../components/ui/button";
@@ -108,6 +109,7 @@ export default function DeliveryPage({
 
   async function markDelivered(orderId: bigint) {
     await actor?.updateOrderStatus(orderId, OrderStatus.delivered);
+    toast.success("Order marked as delivered! 🎉");
     loadData();
   }
 

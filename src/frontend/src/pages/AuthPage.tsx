@@ -52,18 +52,19 @@ export default function AuthPage({
     }
   }
 
+  // All 3 roles always visible — defaultRole only sets the initial selection
   const roles: { value: Role; label: string; icon: string; desc: string }[] = [
     {
       value: Role.customer,
       label: "Customer",
-      icon: "🍽️",
+      icon: "🛒",
       desc: "Order food from restaurants",
     },
     {
       value: Role.restaurant_owner,
-      label: "Restaurant Owner",
+      label: "Restaurant Partner",
       icon: "🏪",
-      desc: "Manage your restaurant",
+      desc: "Manage your restaurant & menu",
     },
     {
       value: Role.delivery_agent,
@@ -99,8 +100,8 @@ export default function AuthPage({
       {!isLoggedIn ? (
         <Card className="w-full max-w-sm shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle>Welcome</CardTitle>
-            <CardDescription>Sign in to continue</CardDescription>
+            <CardTitle>Welcome Back</CardTitle>
+            <CardDescription>Sign in or create an account</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button
@@ -115,7 +116,7 @@ export default function AuthPage({
                   in...
                 </>
               ) : (
-                "Sign in with Internet Identity"
+                "Login or Sign Up"
               )}
             </Button>
             {onAdminLogin && (
@@ -136,7 +137,7 @@ export default function AuthPage({
           <CardHeader>
             <CardTitle>Complete your profile</CardTitle>
             <CardDescription>
-              Tell us about yourself to get started
+              Tell us how you'll use HungerVibes
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -164,7 +165,7 @@ export default function AuthPage({
                 />
               </div>
               <div className="space-y-2">
-                <Label>I am a...</Label>
+                <Label>I want to join as...</Label>
                 <div className="grid grid-cols-1 gap-2">
                   {roles.map((r) => (
                     <button
@@ -209,7 +210,7 @@ export default function AuthPage({
                     account...
                   </>
                 ) : (
-                  "Get Started"
+                  "Create Account"
                 )}
               </Button>
               {onAdminLogin && (

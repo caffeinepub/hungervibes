@@ -3,47 +3,106 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 type PanelType = "customer" | "restaurant" | "delivery" | "admin";
 
-interface Panel {
-  id: PanelType;
-  icon: string;
-  title: string;
-  description: string;
-  color: string;
-  bgColor: string;
-}
-
-const panels: Panel[] = [
+const foodEmojis = [
   {
-    id: "customer",
-    icon: "🛒",
-    title: "Customer",
-    description: "Order food from your favourite restaurants",
-    color: "text-orange-600",
-    bgColor: "bg-orange-50 border-orange-200 hover:bg-orange-100",
+    emoji: "🍕",
+    id: "pizza",
+    style: {
+      top: "8%",
+      left: "5%",
+      animationDelay: "0s",
+      animationDuration: "18s",
+    },
   },
   {
-    id: "restaurant",
-    icon: "🍽️",
-    title: "Restaurant Partner",
-    description: "Manage your restaurant, menu & orders",
-    color: "text-green-600",
-    bgColor: "bg-green-50 border-green-200 hover:bg-green-100",
+    emoji: "🍔",
+    id: "burger",
+    style: {
+      top: "15%",
+      right: "8%",
+      animationDelay: "2s",
+      animationDuration: "22s",
+    },
   },
   {
-    id: "delivery",
-    icon: "🛵",
-    title: "Delivery Agent",
-    description: "Pick up and deliver orders to customers",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50 border-blue-200 hover:bg-blue-100",
+    emoji: "🌮",
+    id: "taco",
+    style: {
+      top: "30%",
+      left: "3%",
+      animationDelay: "4s",
+      animationDuration: "20s",
+    },
   },
   {
-    id: "admin",
-    icon: "⚙️",
-    title: "Admin Panel",
-    description: "Manage the entire platform",
-    color: "text-purple-600",
-    bgColor: "bg-purple-50 border-purple-200 hover:bg-purple-100",
+    emoji: "🍜",
+    id: "noodle",
+    style: {
+      top: "45%",
+      right: "5%",
+      animationDelay: "1s",
+      animationDuration: "25s",
+    },
+  },
+  {
+    emoji: "🍣",
+    id: "sushi",
+    style: {
+      top: "60%",
+      left: "8%",
+      animationDelay: "6s",
+      animationDuration: "19s",
+    },
+  },
+  {
+    emoji: "🧆",
+    id: "falafel",
+    style: {
+      top: "20%",
+      left: "50%",
+      animationDelay: "3s",
+      animationDuration: "23s",
+    },
+  },
+  {
+    emoji: "🥗",
+    id: "salad",
+    style: {
+      top: "70%",
+      right: "10%",
+      animationDelay: "5s",
+      animationDuration: "21s",
+    },
+  },
+  {
+    emoji: "🍰",
+    id: "cake",
+    style: {
+      top: "55%",
+      left: "40%",
+      animationDelay: "7s",
+      animationDuration: "24s",
+    },
+  },
+  {
+    emoji: "🍩",
+    id: "donut",
+    style: {
+      top: "80%",
+      left: "15%",
+      animationDelay: "2.5s",
+      animationDuration: "17s",
+    },
+  },
+  {
+    emoji: "🥘",
+    id: "curry",
+    style: {
+      top: "10%",
+      left: "30%",
+      animationDelay: "8s",
+      animationDuration: "26s",
+    },
   },
 ];
 
@@ -55,64 +114,121 @@ export default function HomePage({
   const { identity } = useInternetIdentity();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 flex flex-col">
-      {/* Header */}
-      <header className="px-6 pt-10 pb-6 text-center">
+    <div className="home-page min-h-screen flex flex-col overflow-hidden relative">
+      {/* Animated background */}
+      <div className="home-bg" aria-hidden="true">
+        <div className="blob blob-1" />
+        <div className="blob blob-2" />
+        <div className="blob blob-3" />
+        <div className="blob blob-4" />
+      </div>
+
+      {/* Floating food emojis */}
+      <div aria-hidden="true">
+        {foodEmojis.map((item) => (
+          <span
+            key={item.id}
+            className="food-float"
+            style={item.style as React.CSSProperties}
+          >
+            {item.emoji}
+          </span>
+        ))}
+      </div>
+
+      {/* Hero section */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 pb-24 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-10"
         >
-          <div className="text-5xl mb-3">🔥</div>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
+          <div
+            className="text-7xl mb-4"
+            style={{ filter: "drop-shadow(0 4px 24px rgba(251,146,60,0.5))" }}
+          >
+            🔥
+          </div>
+          <h1
+            className="text-5xl font-extrabold tracking-tight mb-3"
+            style={{ color: "#1a1a1a" }}
+          >
             HungerVibes
           </h1>
-          <p className="mt-2 text-gray-500 text-base">
+          <p className="text-lg text-gray-500 mb-2 font-medium">
             India's favourite food delivery platform
           </p>
           {identity && (
-            <p className="mt-1 text-sm text-green-600 font-medium">
-              ✓ Signed in
-            </p>
+            <p className="text-sm text-green-600 font-semibold">✓ Signed in</p>
           )}
         </motion.div>
-      </header>
 
-      {/* Panel Cards */}
-      <main className="flex-1 px-4 pb-10 max-w-lg mx-auto w-full">
-        <p className="text-center text-sm text-gray-500 mb-6 font-medium uppercase tracking-widest">
-          Select your panel
-        </p>
-        <div className="grid grid-cols-1 gap-4">
-          {panels.map((panel, idx) => (
-            <motion.button
-              key={panel.id}
-              type="button"
-              data-ocid={`home.${panel.id}.button`}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: idx * 0.08 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => onSelectPanel(panel.id)}
-              className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200 text-left cursor-pointer ${panel.bgColor}`}
-            >
-              <span className="text-4xl">{panel.icon}</span>
-              <div className="flex-1">
-                <div className={`font-bold text-lg ${panel.color}`}>
-                  {panel.title}
-                </div>
-                <div className="text-sm text-gray-500 mt-0.5">
-                  {panel.description}
-                </div>
-              </div>
-              <span className="text-gray-400 text-xl">›</span>
-            </motion.button>
-          ))}
-        </div>
+        {/* Customer CTA */}
+        <motion.button
+          type="button"
+          data-ocid="home.customer.button"
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{
+            duration: 0.5,
+            delay: 0.2,
+            type: "spring",
+            stiffness: 200,
+          }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => onSelectPanel("customer")}
+          className="customer-cta-btn group relative overflow-hidden"
+        >
+          <span className="relative z-10 flex flex-col items-center gap-1">
+            <span className="text-3xl">🛒</span>
+            <span className="text-2xl font-black tracking-tight">
+              Order Now
+            </span>
+            <span className="text-sm font-medium opacity-90">
+              {identity ? "Just logged in" : "Login or Sign Up"}
+            </span>
+          </span>
+          <span className="cta-shimmer" aria-hidden="true" />
+        </motion.button>
       </main>
 
-      {/* Footer */}
-      <footer className="text-center py-4 text-xs text-gray-400">
+      {/* Bottom bar */}
+      <nav className="bottom-bar" aria-label="Partner panels">
+        <button
+          type="button"
+          data-ocid="home.restaurant.button"
+          onClick={() => onSelectPanel("restaurant")}
+          className="bottom-bar-btn"
+        >
+          <span className="text-xl">🍽️</span>
+          <span className="text-xs font-semibold">Restaurant</span>
+        </button>
+        <div className="bottom-bar-divider" aria-hidden="true" />
+        <button
+          type="button"
+          data-ocid="home.delivery.button"
+          onClick={() => onSelectPanel("delivery")}
+          className="bottom-bar-btn"
+        >
+          <span className="text-xl">🛵</span>
+          <span className="text-xs font-semibold">Delivery Agent</span>
+        </button>
+        <div className="bottom-bar-divider" aria-hidden="true" />
+        <button
+          type="button"
+          data-ocid="home.admin.button"
+          onClick={() => onSelectPanel("admin")}
+          className="bottom-bar-btn"
+        >
+          <span className="text-xl">⚙️</span>
+          <span className="text-xs font-semibold">Admin</span>
+        </button>
+      </nav>
+
+      {/* Footer credit */}
+      <div className="absolute bottom-20 w-full text-center text-xs text-gray-400 z-10">
         © {new Date().getFullYear()}.{" "}
         <a
           href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
@@ -122,7 +238,7 @@ export default function HomePage({
         >
           Built with love using caffeine.ai
         </a>
-      </footer>
+      </div>
     </div>
   );
 }

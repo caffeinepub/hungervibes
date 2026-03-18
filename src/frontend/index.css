@@ -79,3 +79,180 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
+
+/* ===== HungerVibes Home Page Animations ===== */
+
+.home-page {
+  background: linear-gradient(145deg, #fff7ed 0%, #ffffff 50%, #fef2f2 100%);
+  min-height: 100svh;
+}
+
+/* Animated blob background */
+.home-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  animation: blobFloat linear infinite;
+}
+
+.blob-1 {
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, oklch(0.85 0.18 55), oklch(0.9 0.12 40));
+  top: -100px;
+  left: -120px;
+  animation-duration: 28s;
+  animation-delay: 0s;
+}
+
+.blob-2 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, oklch(0.88 0.15 30), oklch(0.92 0.1 20));
+  top: 30%;
+  right: -100px;
+  animation-duration: 35s;
+  animation-delay: -8s;
+}
+
+.blob-3 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, oklch(0.9 0.12 70), oklch(0.95 0.08 60));
+  bottom: 100px;
+  left: 10%;
+  animation-duration: 32s;
+  animation-delay: -15s;
+}
+
+.blob-4 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, oklch(0.87 0.2 45), oklch(0.9 0.14 35));
+  top: 55%;
+  left: 40%;
+  animation-duration: 40s;
+  animation-delay: -22s;
+}
+
+@keyframes blobFloat {
+  0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
+  25%  { transform: translate(30px, -40px) scale(1.05) rotate(5deg); }
+  50%  { transform: translate(-20px, 30px) scale(0.95) rotate(-3deg); }
+  75%  { transform: translate(40px, 20px) scale(1.02) rotate(4deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+}
+
+/* Floating food emojis */
+.food-float {
+  position: fixed;
+  font-size: 2rem;
+  user-select: none;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+  animation: foodDrift linear infinite;
+}
+
+@keyframes foodDrift {
+  0%   { transform: translateY(0px) rotate(0deg); }
+  20%  { transform: translateY(-18px) rotate(8deg); }
+  40%  { transform: translateY(10px) rotate(-5deg); }
+  60%  { transform: translateY(-25px) rotate(12deg); }
+  80%  { transform: translateY(15px) rotate(-8deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+/* Customer CTA button */
+.customer-cta-btn {
+  position: relative;
+  background: linear-gradient(135deg, oklch(0.72 0.22 40), oklch(0.6 0.25 30));
+  color: white;
+  border: none;
+  border-radius: 24px;
+  padding: 24px 56px;
+  cursor: pointer;
+  box-shadow: 0 8px 40px oklch(0.65 0.22 35 / 0.45), 0 2px 8px oklch(0.65 0.22 35 / 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-width: 240px;
+}
+
+.customer-cta-btn:hover {
+  box-shadow: 0 12px 50px oklch(0.65 0.22 35 / 0.55), 0 4px 12px oklch(0.65 0.22 35 / 0.3);
+}
+
+/* Shimmer effect on CTA */
+.cta-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmerSlide 3s ease-in-out infinite;
+}
+
+@keyframes shimmerSlide {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Bottom bar */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: stretch;
+  background: rgba(20, 10, 5, 0.82);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  height: 72px;
+}
+
+.bottom-bar-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.75);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+  padding: 10px 8px;
+}
+
+.bottom-bar-btn:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bottom-bar-btn:active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.bottom-bar-divider {
+  width: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  align-self: stretch;
+  margin: 12px 0;
+}

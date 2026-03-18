@@ -1,5 +1,6 @@
 import { Home, Loader2, LogOut, Plus, Store, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { OrderStatus } from "../backend";
 import type {
   AgentInfo,
