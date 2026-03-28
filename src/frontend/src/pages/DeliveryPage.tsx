@@ -1,10 +1,11 @@
 import {
-  Home,
+  ChevronDown,
   IndianRupee,
   Loader2,
   LogOut,
   Navigation,
   Package,
+  User,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +13,13 @@ import { OrderStatus } from "../backend";
 import type { Order, UserProfile } from "../backend";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 import { Skeleton } from "../components/ui/skeleton";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
@@ -147,7 +155,6 @@ export default function DeliveryPage({
               className="w-full"
               onClick={onHome}
             >
-              <Home size={16} className="mr-2" />
               Back to Home
             </Button>
             <Button
@@ -175,22 +182,42 @@ export default function DeliveryPage({
           <h1 className="text-lg font-bold">🛵 HungerVibes</h1>
           <p className="text-xs opacity-75">{profile.name}</p>
         </div>
-        <button
-          type="button"
-          data-ocid="delivery.home.button"
-          onClick={onHome}
-          className="p-1 opacity-70 hover:opacity-100"
-        >
-          <Home size={20} />
-        </button>
-        <button
-          type="button"
-          data-ocid="delivery.sign_out.button"
-          onClick={onSignOut}
-          className="p-1 opacity-70 hover:opacity-100"
-        >
-          <LogOut size={20} />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              data-ocid="delivery.user.dropdown_menu"
+              className="flex items-center gap-1 p-1 rounded-full opacity-80 hover:opacity-100 transition-opacity"
+            >
+              <div className="w-7 h-7 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                <User size={16} />
+              </div>
+              <ChevronDown size={14} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <div className="px-3 py-2">
+              <p className="text-sm font-semibold truncate">{profile.name}</p>
+              <p className="text-xs text-muted-foreground">Delivery Agent</p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              data-ocid="delivery.switch_panel.button"
+              onClick={onHome}
+            >
+              Switch Panel
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              data-ocid="delivery.sign_out.button"
+              onClick={onSignOut}
+              className="text-destructive focus:text-destructive"
+            >
+              <LogOut size={15} className="mr-2" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {tab === "available" && (

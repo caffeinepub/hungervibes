@@ -1,4 +1,4 @@
-import { Loader2, ShieldCheck } from "lucide-react";
+import { CheckCircle, Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Role } from "../backend";
 import { Button } from "../components/ui/button";
@@ -19,6 +19,12 @@ interface Props {
   onRegistered?: () => void;
   onAdminLogin?: () => void;
   defaultRole?: Role;
+  /** When true, user is already logged in and wants to add a new role */
+  addingRole?: boolean;
+  /** Pre-filled name from existing profile */
+  existingName?: string;
+  /** Pre-filled phone from existing profile */
+  existingPhone?: string;
 }
 
 export default function AuthPage({
@@ -26,14 +32,19 @@ export default function AuthPage({
   onAdminLogin,
   onBack,
   defaultRole,
+  addingRole = false,
+  existingName = "",
+  existingPhone = "",
 }: Props) {
   const { login, loginStatus, identity } = useInternetIdentity();
   const { actor } = useActor();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(existingName);
+  const [phone, setPhone] = useState(existingPhone);
   const [role, setRole] = useState<Role>(defaultRole ?? Role.customer);
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedRole, setSubmittedRole] = useState<Role | null>(null);
 
   const isLoggedIn = !!identity;
 
@@ -44,7 +55,14 @@ export default function AuthPage({
     setError("");
     try {
       await actor.registerUser(name.trim(), phone.trim(), role);
-      onRegistered?.();
+      if (role === Role.customer) {
+        // Customer is auto-approved — go straight to panel
+        onRegistered?.();
+      } else {
+        // Restaurant/delivery — pending admin approval
+        setSubmittedRole(role);
+        setSubmitted(true);
+      }
     } catch (_err) {
       setError("Registration failed. Please try again.");
     } finally {
@@ -52,7 +70,6 @@ export default function AuthPage({
     }
   }
 
-  // All 3 roles always visible — defaultRole only sets the initial selection
   const roles: { value: Role; label: string; icon: string; desc: string }[] = [
     {
       value: Role.customer,
@@ -73,6 +90,69 @@ export default function AuthPage({
       desc: "Deliver orders & earn",
     },
   ];
+
+  const roleLabels: Record<Role, string> = {
+    [Role.customer]: "Customer",
+    [Role.restaurant_owner]: "Restaurant Partner",
+    [Role.delivery_agent]: "Delivery Agent",
+  };
+
+  // Show success/pending screen after registration
+  if (submitted && submittedRole) {
+    const isPending = submittedRole !== Role.customer;
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-4 py-8"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.95 0.05 60), oklch(0.98 0.03 30))",
+        }}
+      >
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center space-y-5">
+          <div className="text-5xl">{isPending ? "⏳" : "✅"}</div>
+          <div className="flex items-center justify-center gap-2">
+            <CheckCircle className="text-green-500" size={20} />
+            <h2 className="text-xl font-bold text-foreground">
+              {isPending ? "Application Submitted!" : "Welcome aboard!"}
+            </h2>
+          </div>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            {isPending ? (
+              <>
+                Your <strong>{roleLabels[submittedRole]}</strong> application
+                has been submitted successfully. Our admin team will review and
+                approve it shortly. You'll be able to access the panel once
+                approved.
+              </>
+            ) : (
+              "Your account has been created successfully!"
+            )}
+          </p>
+          {isPending && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-left">
+              <p className="text-xs font-semibold text-orange-800 mb-1">
+                What happens next?
+              </p>
+              <p className="text-xs text-orange-700">
+                The admin will review your profile and approve it. Check back in
+                a few hours.
+              </p>
+            </div>
+          )}
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              data-ocid="auth.submitted.home.button"
+              variant="outline"
+              className="w-full"
+              onClick={onBack}
+            >
+              Back to Home
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -135,9 +215,13 @@ export default function AuthPage({
       ) : (
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader>
-            <CardTitle>Complete your profile</CardTitle>
+            <CardTitle>
+              {addingRole ? "Add a New Role" : "Complete your profile"}
+            </CardTitle>
             <CardDescription>
-              Tell us how you'll use HungerVibes
+              {addingRole
+                ? "Register an additional role for your account"
+                : "Tell us how you'll use HungerVibes"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -165,7 +249,11 @@ export default function AuthPage({
                 />
               </div>
               <div className="space-y-2">
-                <Label>I want to join as...</Label>
+                <Label>
+                  {addingRole
+                    ? "Select role to add..."
+                    : "I want to join as..."}
+                </Label>
                 <div className="grid grid-cols-1 gap-2">
                   {roles.map((r) => (
                     <button
@@ -206,9 +294,11 @@ export default function AuthPage({
               >
                 {registering ? (
                   <>
-                    <Loader2 className="animate-spin mr-2" size={18} /> Creating
-                    account...
+                    <Loader2 className="animate-spin mr-2" size={18} />
+                    {addingRole ? "Submitting..." : "Creating account..."}
                   </>
+                ) : addingRole ? (
+                  "Submit Application"
                 ) : (
                   "Create Account"
                 )}

@@ -1,13 +1,14 @@
 import {
   ArrowLeft,
+  ChevronDown,
   Clock,
-  Home,
   Loader2,
   LogOut,
   MapPin,
   Search,
   ShoppingCart,
   Star,
+  User,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PaymentMethod } from "../backend";
@@ -20,6 +21,13 @@ import type {
 } from "../backend";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 import { Input } from "../components/ui/input";
 import { Skeleton } from "../components/ui/skeleton";
 import { useActor } from "../hooks/useActor";
@@ -213,39 +221,55 @@ export default function CustomerPage({
                 ? "Your Cart"
                 : "Your Orders"}
         </h1>
-        {tab === "home" && (
-          <>
+        <button
+          type="button"
+          onClick={() => setTab("cart")}
+          data-ocid="customer.cart.button"
+          className="relative p-1"
+        >
+          <ShoppingCart size={22} />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+              {cartCount}
+            </span>
+          )}
+        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <button
               type="button"
-              onClick={() => setTab("cart")}
-              data-ocid="customer.cart.button"
-              className="relative"
+              data-ocid="customer.user.dropdown_menu"
+              className="flex items-center gap-1 p-1 rounded-full opacity-80 hover:opacity-100 transition-opacity"
             >
-              <ShoppingCart size={22} />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                  {cartCount}
-                </span>
-              )}
+              <div className="w-7 h-7 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                <User size={16} />
+              </div>
+              <ChevronDown size={14} />
             </button>
-            <button
-              type="button"
-              data-ocid="customer.home.button"
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <div className="px-3 py-2">
+              <p className="text-sm font-semibold truncate">{_profile.name}</p>
+              <p className="text-xs text-muted-foreground">Customer</p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              data-ocid="customer.switch_panel.button"
               onClick={onHome}
-              className="p-1 opacity-70 hover:opacity-100"
             >
-              <Home size={20} />
-            </button>
-            <button
-              type="button"
+              Switch Panel
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
               data-ocid="customer.sign_out.button"
               onClick={onSignOut}
-              className="p-1 opacity-70 hover:opacity-100"
+              className="text-destructive focus:text-destructive"
             >
-              <LogOut size={20} />
-            </button>
-          </>
-        )}
+              <LogOut size={15} className="mr-2" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Home */}

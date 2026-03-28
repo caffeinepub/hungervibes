@@ -56,6 +56,11 @@ export interface Order {
     deliveryAgentId?: Principal;
     subtotal: bigint;
 }
+export interface RoleEntry {
+    role: Role;
+    isVerified: boolean;
+    isSuspended: boolean;
+}
 export interface UserProfile {
     name: string;
     role: Role;
@@ -107,6 +112,7 @@ export interface backendInterface {
     deleteMenuItem(itemId: bigint): Promise<void>;
     getAllOrders(): Promise<Array<Order>>;
     getAllRestaurants(): Promise<Array<Restaurant>>;
+    getAllUsersWithPrincipals(): Promise<Array<[Principal, UserProfile]>>;
     getAnalytics(): Promise<{
         ordersByStatus: Array<[OrderStatus, bigint]>;
         totalOrders: bigint;
@@ -117,6 +123,7 @@ export interface backendInterface {
     getDeliveryAgentEarnings(agentId: Principal): Promise<bigint>;
     getMenuByRestaurant(restaurantId: bigint): Promise<Array<MenuItem>>;
     getMyRestaurant(): Promise<Restaurant | null>;
+    getMyRoles(): Promise<Array<RoleEntry>>;
     getOrdersByCustomer(customerId: Principal): Promise<Array<Order>>;
     getOrdersByDeliveryAgent(agentId: Principal): Promise<Array<Order>>;
     getOrdersByRestaurant(restaurantId: bigint): Promise<Array<Order>>;
@@ -128,6 +135,7 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUsersByRole(role: Role): Promise<Array<UserProfile>>;
     getVerifiedDeliveryAgents(): Promise<Array<AgentInfo>>;
+    hasCallerRole(role: Role): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     placeOrder(restaurantId: bigint, items: Array<OrderItem>, deliveryAddress: string, paymentMethod: PaymentMethod, couponCode: string | null): Promise<bigint>;
     registerUser(name: string, phone: string, role: Role): Promise<void>;
@@ -141,4 +149,5 @@ export interface backendInterface {
     updateRestaurant(restaurantId: bigint, name: string | null, description: string | null, address: string | null, phone: string | null, cuisineType: string | null): Promise<void>;
     validateCoupon(code: string): Promise<boolean>;
     verifyDeliveryAgent(agentId: Principal): Promise<void>;
+    verifyUserRole(userId: Principal, role: Role): Promise<void>;
 }
