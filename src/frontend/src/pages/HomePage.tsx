@@ -1,195 +1,176 @@
+import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 type PanelType = "customer" | "restaurant" | "delivery" | "admin";
 
-// Reduced from 10 to 6 emojis to cut simultaneous animation cost
-const foodEmojis = [
+const ROLE_CARDS: {
+  panel: PanelType;
+  emoji: string;
+  title: string;
+  subtitle: string;
+  ocid: string;
+  gradient: string;
+  border: string;
+  badge: string;
+}[] = [
   {
-    emoji: "🍕",
-    id: "pizza",
-    style: {
-      top: "8%",
-      left: "5%",
-      animationDelay: "0s",
-      animationDuration: "18s",
-    },
+    panel: "customer",
+    emoji: "🛒",
+    title: "Customer",
+    subtitle: "Order food from your favourite restaurants",
+    ocid: "home.customer.button",
+    gradient: "from-orange-50 to-amber-50",
+    border: "border-orange-200 hover:border-orange-400",
+    badge: "bg-orange-100 text-orange-700",
   },
   {
-    emoji: "🍔",
-    id: "burger",
-    style: {
-      top: "15%",
-      right: "8%",
-      animationDelay: "2s",
-      animationDuration: "22s",
-    },
+    panel: "restaurant",
+    emoji: "🍽️",
+    title: "Restaurant Partner",
+    subtitle: "Manage your menu, orders & deliveries",
+    ocid: "home.restaurant.button",
+    gradient: "from-rose-50 to-pink-50",
+    border: "border-rose-200 hover:border-rose-400",
+    badge: "bg-rose-100 text-rose-700",
   },
   {
-    emoji: "🌮",
-    id: "taco",
-    style: {
-      top: "30%",
-      left: "3%",
-      animationDelay: "4s",
-      animationDuration: "20s",
-    },
+    panel: "delivery",
+    emoji: "🛵",
+    title: "Delivery Partner",
+    subtitle: "Pick up & deliver orders near you",
+    ocid: "home.delivery.button",
+    gradient: "from-emerald-50 to-teal-50",
+    border: "border-emerald-200 hover:border-emerald-400",
+    badge: "bg-emerald-100 text-emerald-700",
   },
   {
-    emoji: "🍜",
-    id: "noodle",
-    style: {
-      top: "45%",
-      right: "5%",
-      animationDelay: "1s",
-      animationDuration: "25s",
-    },
-  },
-  {
-    emoji: "🍣",
-    id: "sushi",
-    style: {
-      top: "60%",
-      left: "8%",
-      animationDelay: "6s",
-      animationDuration: "19s",
-    },
-  },
-  {
-    emoji: "🥗",
-    id: "salad",
-    style: {
-      top: "70%",
-      right: "10%",
-      animationDelay: "5s",
-      animationDuration: "21s",
-    },
+    panel: "admin",
+    emoji: "🔐",
+    title: "Admin",
+    subtitle: "Manage platform users, approvals & KYC",
+    ocid: "home.admin.button",
+    gradient: "from-slate-50 to-gray-100",
+    border: "border-slate-200 hover:border-slate-400",
+    badge: "bg-slate-100 text-slate-700",
   },
 ];
 
 export default function HomePage({
-  onSelectPanel,
+  onSelectPanel: _onSelectPanel,
 }: {
   onSelectPanel: (panel: PanelType) => void;
 }) {
-  const { identity } = useInternetIdentity();
+  const baseUrl = window.location.href.split("?")[0];
+
+  function handleCardClick(panel: PanelType) {
+    window.open(`${baseUrl}?panel=${panel}`, "_blank");
+  }
 
   return (
-    <div className="home-page min-h-screen flex flex-col overflow-hidden relative">
-      {/* Animated background */}
-      <div className="home-bg" aria-hidden="true">
-        <div className="blob blob-1" />
-        <div className="blob blob-2" />
-        <div className="blob blob-3" />
-        <div className="blob blob-4" />
-      </div>
-
-      {/* Floating food emojis */}
-      <div aria-hidden="true">
-        {foodEmojis.map((item) => (
-          <span
-            key={item.id}
-            className="food-float"
-            style={item.style as React.CSSProperties}
-          >
-            {item.emoji}
-          </span>
-        ))}
-      </div>
-
-      {/* Hero section */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 pb-24 relative z-10">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{
+        background:
+          "linear-gradient(150deg, #fff7ed 0%, #ffffff 40%, #fff1f2 100%)",
+      }}
+    >
+      {/* Header */}
+      <header className="w-full pt-10 pb-4 flex flex-col items-center gap-2 px-4">
         <motion.div
-          initial={{ opacity: 0, y: -30 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-10"
+          transition={{ duration: 0.55 }}
+          className="flex flex-col items-center gap-2"
         >
           <div
-            className="text-7xl mb-4"
-            style={{ filter: "drop-shadow(0 4px 24px rgba(251,146,60,0.5))" }}
+            className="text-6xl mb-1"
+            style={{
+              filter: "drop-shadow(0 4px 20px rgba(251,146,60,0.5))",
+            }}
           >
             🔥
           </div>
           <h1
-            className="text-5xl font-extrabold tracking-tight mb-3"
-            style={{ color: "#1a1a1a" }}
+            className="text-4xl sm:text-5xl font-extrabold tracking-tight"
+            style={{ color: "#ea580c" }}
           >
             HungerVibes
           </h1>
-          <p className="text-lg text-gray-500 mb-2 font-medium">
+          <p className="text-base text-gray-500 font-medium">
             India's favourite food delivery platform
           </p>
-          {identity && (
-            <p className="text-sm text-green-600 font-semibold">✓ Signed in</p>
-          )}
         </motion.div>
+      </header>
 
-        {/* Customer CTA */}
-        <motion.button
-          type="button"
-          data-ocid="home.customer.button"
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{
-            duration: 0.5,
-            delay: 0.2,
-            type: "spring",
-            stiffness: 200,
-          }}
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => onSelectPanel("customer")}
-          className="customer-cta-btn group relative overflow-hidden"
+      {/* Role cards grid */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-8">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-6"
         >
-          <span className="relative z-10 flex flex-col items-center gap-1">
-            <span className="text-3xl">🛒</span>
-            <span className="text-2xl font-black tracking-tight">
-              Order Now
-            </span>
-            <span className="text-sm font-medium opacity-90">
-              {identity ? "Just logged in" : "Login or Sign Up"}
-            </span>
-          </span>
-          <span className="cta-shimmer" aria-hidden="true" />
-        </motion.button>
+          Choose your role to continue
+        </motion.p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-2xl">
+          {ROLE_CARDS.map((card, i) => (
+            <motion.button
+              key={card.panel}
+              type="button"
+              data-ocid={card.ocid}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: 0.15 + i * 0.08,
+                duration: 0.45,
+                type: "spring",
+                stiffness: 260,
+                damping: 22,
+              }}
+              whileHover={{ scale: 1.025, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => handleCardClick(card.panel)}
+              className={`
+                group relative flex flex-col text-left
+                rounded-2xl border-2 p-6 cursor-pointer
+                bg-gradient-to-br ${card.gradient} ${card.border}
+                shadow-sm hover:shadow-md
+                transition-all duration-200
+              `}
+            >
+              {/* Icon + title row */}
+              <div className="flex items-center gap-3 mb-3">
+                <span
+                  className={`text-3xl p-2 rounded-xl ${card.badge} select-none`}
+                >
+                  {card.emoji}
+                </span>
+                <span className="text-lg font-bold text-gray-900">
+                  {card.title}
+                </span>
+              </div>
+
+              {/* Subtitle */}
+              <p className="text-sm text-gray-500 flex-1 leading-relaxed">
+                {card.subtitle}
+              </p>
+
+              {/* Login arrow */}
+              <div className="flex items-center gap-1.5 mt-4 text-sm font-semibold text-gray-700 group-hover:text-orange-600 transition-colors">
+                <span>Login</span>
+                <ArrowRight
+                  size={15}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              </div>
+            </motion.button>
+          ))}
+        </div>
       </main>
 
-      {/* Bottom bar */}
-      <nav className="bottom-bar" aria-label="Partner panels">
-        <button
-          type="button"
-          data-ocid="home.restaurant.button"
-          onClick={() => onSelectPanel("restaurant")}
-          className="bottom-bar-btn"
-        >
-          <span className="text-xl">🍽️</span>
-          <span className="text-xs font-semibold">Restaurant</span>
-        </button>
-        <div className="bottom-bar-divider" aria-hidden="true" />
-        <button
-          type="button"
-          data-ocid="home.delivery.button"
-          onClick={() => onSelectPanel("delivery")}
-          className="bottom-bar-btn"
-        >
-          <span className="text-xl">🛵</span>
-          <span className="text-xs font-semibold">Delivery Agent</span>
-        </button>
-        <div className="bottom-bar-divider" aria-hidden="true" />
-        <button
-          type="button"
-          data-ocid="home.admin.button"
-          onClick={() => onSelectPanel("admin")}
-          className="bottom-bar-btn"
-        >
-          <span className="text-xl">🔐</span>
-          <span className="text-xs font-semibold">Admin</span>
-        </button>
-      </nav>
-
-      {/* Footer credit */}
-      <div className="absolute bottom-20 w-full text-center text-xs text-gray-400 z-10">
+      {/* Footer */}
+      <footer className="w-full text-center py-5 text-xs text-gray-400">
         © {new Date().getFullYear()}.{" "}
         <a
           href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
@@ -199,7 +180,7 @@ export default function HomePage({
         >
           Built with love using caffeine.ai
         </a>
-      </div>
+      </footer>
     </div>
   );
 }

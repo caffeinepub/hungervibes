@@ -48,6 +48,22 @@ function savePanel(panel: PanelType | null) {
   } catch {}
 }
 
+function getPanelFromUrl(): PanelType | null {
+  try {
+    const p = new URLSearchParams(window.location.search).get("panel");
+    if (
+      p === "customer" ||
+      p === "restaurant" ||
+      p === "delivery" ||
+      p === "admin"
+    ) {
+      window.history.replaceState({}, "", window.location.pathname);
+      return p;
+    }
+  } catch {}
+  return null;
+}
+
 // Multi-role helpers
 function panelRole(panel: PanelType): Role | null {
   if (panel === "customer") return Role.customer;
@@ -236,7 +252,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(() => !!identity);
   const [selectedPanel, setSelectedPanel] = useState<PanelType | null>(
-    getSavedPanel,
+    () => getPanelFromUrl() ?? getSavedPanel(),
   );
   const [showAdminLogin, setShowAdminLogin] = useState(false);
 
